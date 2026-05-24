@@ -129,7 +129,7 @@ streamlit run dashboard/app.py
 Sur Streamlit Community Cloud, utiliser:
 
 ```text
-Main file path: streamlit_app.py
+Main file path: dashboard/app.py
 ```
 
 Le dashboard contient:
