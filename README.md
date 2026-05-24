@@ -23,6 +23,15 @@ Projet de Machine Learning pour deux cas d'usage:
 `-- tests/                  # Tests unitaires
 ```
 
+## Livrables
+
+- Rapport final: `RAPPORT_FINAL.md`
+- Dashboard Streamlit: `dashboard/app.py`
+- Presentation finale: `PRESENTATION_ENTREPRISE.md`
+- Depot GitHub deployable: architecture projet, dependances, modeles, donnees utiles, scripts et documentation
+- API FastAPI: `api/main.py`
+- Documentation MLOps: `mlops/`
+
 Les fichiers fournis restent lisibles a la racine:
 
 - `detection_fraude.csv`

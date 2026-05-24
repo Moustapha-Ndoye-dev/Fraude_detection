@@ -42,11 +42,11 @@ python scripts/show_results.py
 python -m streamlit run dashboard/app.py
 ```
 
-3. Montrer la page `Vue direction`.
+3. Montrer la page `Synthese executive`.
 
-4. Montrer la page `Fraude bancaire`.
+4. Montrer la page `Risque fraude`.
 
-5. Montrer la page `Segmentation client`.
+5. Montrer la page `Segments clients`.
 
 6. Aller dans `Scoring operationnel`.
 
@@ -104,3 +104,11 @@ Sources donnees
 ## 7. Phrase de conclusion
 
 La solution proposee transforme deux jeux de donnees bruts en systeme decisionnel exploitable: un moteur de detection de fraude, une segmentation client actionnable et une base MLOps pour passer du prototype a la production.
+
+## 8. Livrables remis
+
+- Rapport final: `RAPPORT_FINAL.md`
+- Dashboard Streamlit: `dashboard/app.py`
+- Presentation entreprise: `PRESENTATION_ENTREPRISE.md`
+- Depot GitHub propre et deployable: `README.md`, `requirements.txt`, `src/`, `scripts/`, `api/`, `dashboard/`, `mlops/`, `models/`, `reports/`
+- Main file path Streamlit Cloud: `dashboard/app.py`
