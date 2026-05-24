@@ -12,7 +12,12 @@ from ml_project.models.fraud import FraudTrainingResult
 from ml_project.models.selection import build_selection_record, save_selection_record
 
 
-def persist_fraud_model(result: FraudTrainingResult, comparison: pd.DataFrame | None = None) -> None:
+def persist_fraud_model(
+    result: FraudTrainingResult,
+    comparison: pd.DataFrame | None = None,
+    *,
+    deployment_meta: dict | None = None,
+) -> None:
     PATHS.ensure_outputs()
     model_path = PATHS.model_dir / "fraud_pipeline.joblib"
     metrics_path = PATHS.report_dir / "fraud_metrics.json"
@@ -22,12 +27,15 @@ def persist_fraud_model(result: FraudTrainingResult, comparison: pd.DataFrame | 
     metrics_path.write_text(json.dumps(result.metrics, indent=2), encoding="utf-8")
 
     if comparison is not None:
+        extra = {"artifact_path": str(model_path.relative_to(PATHS.root))}
+        if deployment_meta:
+            extra.update(deployment_meta)
         record = build_selection_record(
             "fraud",
             result.model_name,
             comparison,
             criteria="f1 desc, recall desc, precision desc, roc_auc desc",
-            extra={"artifact_path": str(model_path.relative_to(PATHS.root))},
+            extra=extra,
         )
         save_selection_record(selection_path, record)
 

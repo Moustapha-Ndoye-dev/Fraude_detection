@@ -47,7 +47,18 @@ def _load_fraud_model():
             status_code=503,
             detail="Modele fraude introuvable. Lancer scripts/train_fraud.py avant l'API.",
         )
-    return joblib.load(model_path)
+    try:
+        return joblib.load(model_path)
+    except ModuleNotFoundError as exc:
+        missing = getattr(exc, "name", None) or str(exc)
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                f"Dependance manquante pour charger le modele ({missing}). "
+                "Regenerer models/fraud_pipeline.joblib avec random_forest "
+                "(python scripts/train_fraud.py --model random_forest)."
+            ),
+        ) from exc
 
 
 @app.get("/health")

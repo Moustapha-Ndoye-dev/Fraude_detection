@@ -7,6 +7,7 @@ from ml_project.models.selection import (
     rank_clustering_models,
     rank_fraud_models,
     select_best_clustering_model,
+    select_best_deployable_fraud_model,
     select_best_fraud_model,
 )
 
@@ -31,6 +32,18 @@ def test_select_best_fraud_model_breaks_ties_with_preferred_order():
         ]
     )
     assert select_best_fraud_model(comparison) == "lightgbm"
+
+
+def test_select_best_deployable_fraud_model_skips_boosting_libraries():
+    comparison = pd.DataFrame(
+        [
+            {"model": "random_forest", "status": "ok", "f1": 0.98, "recall": 0.96, "precision": 1.0, "roc_auc": 0.99},
+            {"model": "lightgbm", "status": "ok", "f1": 0.99, "recall": 0.98, "precision": 1.0, "roc_auc": 1.0},
+            {"model": "xgboost", "status": "ok", "f1": 0.985, "recall": 0.97, "precision": 1.0, "roc_auc": 0.999},
+        ]
+    )
+    assert select_best_fraud_model(comparison) == "lightgbm"
+    assert select_best_deployable_fraud_model(comparison) == "random_forest"
 
 
 def test_select_best_clustering_model_excludes_dbscan_noise():

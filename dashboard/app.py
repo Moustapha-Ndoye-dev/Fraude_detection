@@ -176,11 +176,27 @@ def load_k_scores() -> pd.DataFrame:
 
 
 @st.cache_resource(show_spinner=False)
+def _load_fraud_model_from_disk(model_path: str):
+    return joblib.load(model_path)
+
+
 def load_fraud_model():
     path = PATHS.model_dir / "fraud_pipeline.joblib"
     if not path.exists():
         return None
-    return joblib.load(path)
+    try:
+        return _load_fraud_model_from_disk(str(path))
+    except ModuleNotFoundError as exc:
+        missing = getattr(exc, "name", None) or str(exc)
+        st.error(
+            "Impossible de charger le modele fraude: dependance manquante "
+            f"({missing}). Le fichier models/fraud_pipeline.joblib a probablement ete "
+            "entraine avec xgboost ou lightgbm. Relancer "
+            "`python scripts/compare_fraud_models.py` ou "
+            "`python scripts/train_fraud.py --model random_forest` pour regenerer "
+            "un artefact compatible Streamlit Cloud."
+        )
+        return None
 
 
 def scoring_ready() -> bool:

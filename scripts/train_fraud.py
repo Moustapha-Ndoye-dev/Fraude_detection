@@ -32,7 +32,7 @@ def main() -> None:
     PATHS.ensure_outputs()
 
     comparison_path = PATHS.report_dir / "fraud_model_comparison.csv"
-    model_name = resolve_fraud_model(args.model, comparison_path)
+    model_name = resolve_fraud_model(args.model, comparison_path, deployable=args.model == "best")
 
     df = read_fraud_transactions(nrows=args.nrows)
     result = train_fraud_model(df, model_name=model_name, test_size=args.test_size)

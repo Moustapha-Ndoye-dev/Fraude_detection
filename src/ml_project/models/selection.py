@@ -25,6 +25,11 @@ CLUSTERING_MODEL_ORDER = [
 FRAUD_RANK_COLUMNS = ["f1", "recall", "precision", "roc_auc"]
 CLUSTERING_RANK_COLUMNS = ["silhouette", "davies_bouldin"]
 
+# Modeles serialisables sans dependances optionnelles (requirements-optional.txt).
+DEPLOYABLE_FRAUD_MODELS = frozenset(
+    {"logistic_regression", "random_forest", "neural_network"},
+)
+
 
 def _model_rank(model_name: str, order: list[str]) -> int:
     try:
@@ -58,6 +63,18 @@ def select_best_fraud_model(comparison: pd.DataFrame) -> str:
     return str(ranked.iloc[0]["model"])
 
 
+def select_best_deployable_fraud_model(comparison: pd.DataFrame) -> str:
+    deployable = comparison[
+        (comparison["status"] == "ok") & (comparison["model"].isin(DEPLOYABLE_FRAUD_MODELS))
+    ]
+    if deployable.empty:
+        raise ValueError(
+            "Aucun modele fraude deployable (scikit-learn) dans la comparaison. "
+            "Verifier qu'au moins random_forest ou logistic_regression a ete entraine."
+        )
+    return select_best_fraud_model(deployable)
+
+
 def rank_clustering_models(comparison: pd.DataFrame) -> pd.DataFrame:
     candidates = comparison.copy()
     for column in CLUSTERING_RANK_COLUMNS:
@@ -83,7 +100,7 @@ def select_best_clustering_model(comparison: pd.DataFrame) -> str:
     return str(ranked.iloc[0]["model"])
 
 
-def resolve_fraud_model(model_name: str, comparison_path: Path) -> str:
+def resolve_fraud_model(model_name: str, comparison_path: Path, *, deployable: bool = False) -> str:
     if model_name != "best":
         return model_name
     if not comparison_path.exists():
@@ -92,6 +109,8 @@ def resolve_fraud_model(model_name: str, comparison_path: Path) -> str:
             "Lancer: python scripts/compare_fraud_models.py"
         )
     comparison = pd.read_csv(comparison_path)
+    if deployable:
+        return select_best_deployable_fraud_model(comparison)
     return select_best_fraud_model(comparison)
 
 

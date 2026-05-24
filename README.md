@@ -107,6 +107,12 @@ python scripts/compare_fraud_models.py --nrows 200000
 Le script compare les modeles, selectionne automatiquement le meilleur et sauvegarde
 `models/fraud_pipeline.joblib` sur l'integralite des transactions.
 
+**Deploiement Streamlit Cloud :** l'artefact de production utilise le meilleur modele
+**deployable** (scikit-learn uniquement : Random Forest, regression logistique ou reseau),
+car XGBoost et LightGBM sont dans `requirements-optional.txt`. Le meilleur modele en
+comparaison complete reste consigne dans `reports/fraud_model_selection.json`
+(champ `comparison_winner` si different).
+
 Le script compare:
 
 - Regression Logistique;
