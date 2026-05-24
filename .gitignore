@@ -19,11 +19,17 @@ data/processed/*
 !data/README.md
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+!detection_fraude.csv
+!data_cluster.csv
+!data/processed/customer_segments.csv
 
 # Modeles, rapports generes et notebooks checkpoints
 models/*
 reports/figures/*
 !models/.gitkeep
+!models/fraud_pipeline.joblib
+!models/customer_clustering.joblib
+!reports/customer_k_scores.csv
 !reports/figures/.gitkeep
 .ipynb_checkpoints/
 

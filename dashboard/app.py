@@ -64,6 +64,8 @@ def load_json(path: str) -> dict:
 
 @st.cache_data(show_spinner="Chargement des transactions...")
 def load_fraud_data() -> pd.DataFrame:
+    if not PATHS.fraud_data.exists():
+        return pd.DataFrame()
     return pd.read_csv(
         PATHS.fraud_data,
         sep=";",
@@ -84,7 +86,7 @@ def load_fraud_data() -> pd.DataFrame:
 def load_customer_segments() -> pd.DataFrame:
     path = PATHS.processed_dir / "customer_segments.csv"
     if not path.exists():
-        raise FileNotFoundError("Segments introuvables. Lancez scripts/train_customer_clustering.py")
+        return pd.DataFrame()
     return pd.read_csv(path)
 
 
@@ -106,6 +108,14 @@ def load_fraud_model():
 
 def scoring_ready() -> bool:
     return (PATHS.model_dir / "fraud_pipeline.joblib").exists()
+
+
+def missing_asset(message: str) -> None:
+    st.error(message)
+    st.info(
+        "En production Streamlit, les fichiers de donnees et les modeles doivent etre presents dans le depot GitHub "
+        "ou fournis par un stockage externe. Le dashboard reste disponible, mais cette page attend ces artefacts."
+    )
 
 
 def artifact_status() -> dict[str, bool]:
@@ -190,6 +200,12 @@ def render_executive_page(fraud_df: pd.DataFrame, segments: pd.DataFrame, fraud_
         "Synthese executive",
         "Vue de pilotage pour dirigeants, risque, conformite et marketing.",
     )
+    if fraud_df.empty:
+        missing_asset("Donnees de fraude indisponibles: fichier detection_fraude.csv absent du deploiement.")
+        return
+    if segments.empty:
+        missing_asset("Segments clients indisponibles: fichier data/processed/customer_segments.csv absent du deploiement.")
+        return
     total_transactions = len(fraud_df)
     total_frauds = int(fraud_df["isFraud"].sum())
     profile = segment_labels(customer_profile(segments))
@@ -221,6 +237,9 @@ def render_fraud_page(fraud_df: pd.DataFrame, fraud_metrics: dict) -> None:
         "Risque fraude",
         "Analyse operationnelle des transactions, metriques modele et signaux de fraude a prioriser.",
     )
+    if fraud_df.empty:
+        missing_asset("Donnees de fraude indisponibles: fichier detection_fraude.csv absent du deploiement.")
+        return
     total_transactions = len(fraud_df)
     total_frauds = int(fraud_df["isFraud"].sum())
     fraud_only = fraud_df[fraud_df["isFraud"] == 1]
@@ -451,6 +470,9 @@ def render_customer_page(segments: pd.DataFrame, clustering_metrics: dict, k_sco
         "Segments clients",
         "Profils marketing actionnables pour la fidelisation, la reactivation et les campagnes ciblees.",
     )
+    if segments.empty:
+        missing_asset("Segments clients indisponibles: fichier data/processed/customer_segments.csv absent du deploiement.")
+        return
     profile = segment_labels(customer_profile(segments))
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Clients", fmt_int(len(segments)))
