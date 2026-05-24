@@ -176,6 +176,179 @@ def segment_labels(profile: pd.DataFrame) -> pd.DataFrame:
     return profile
 
 
+def _segment_row(profile: pd.DataFrame, label: str) -> pd.Series:
+    return profile.loc[profile["label_metier"] == label].iloc[0]
+
+
+def fraud_executive_insight(fraud_df: pd.DataFrame, fraud_metrics: dict) -> str:
+    total_transactions = len(fraud_df)
+    total_frauds = int(fraud_df["isFraud"].sum())
+    summary = fraud_type_summary(fraud_df)
+    risky = summary[summary["fraudes"] > 0]
+    risky_types = " et ".join(risky["type"].astype(str).tolist())
+    risky_share = risky["fraudes"].sum() / total_frauds if total_frauds else 0
+    recall = fraud_metrics.get("recall", 0)
+    detected_estimate = round(total_frauds * recall)
+    missed_estimate = max(total_frauds - detected_estimate, 0)
+    return (
+        f"Sur {fmt_int(total_transactions)} transactions, {fmt_int(total_frauds)} fraudes sont observees "
+        f"({fmt_pct(total_frauds / total_transactions, 3)}). {fmt_pct(risky_share, 1)} des fraudes historiques "
+        f"sont concentrees sur {risky_types}. Avec un recall de {fmt_pct(recall, 2)}, le modele retrouve environ "
+        f"{fmt_int(detected_estimate)} fraudes et en laisserait environ {fmt_int(missed_estimate)} hors alerte "
+        "sur un volume comparable: la decision prioritaire est donc de traiter vite les alertes critiques, puis "
+        "d'analyser les cas manques pour ajuster le seuil."
+    )
+
+
+def executive_business_insight(fraud_df: pd.DataFrame, segments: pd.DataFrame, fraud_metrics: dict) -> str:
+    total_frauds = int(fraud_df["isFraud"].sum())
+    summary = fraud_type_summary(fraud_df)
+    profile = segment_labels(customer_profile(segments))
+    premium = _segment_row(profile, "Clients premium")
+    premium_share = premium["clients"] / len(segments)
+    precision = fraud_metrics.get("precision", 0)
+    top_fraud_type = summary.iloc[0]
+    return (
+        f"Decision dirigeant: concentrer les controles fraude sur {top_fraud_type['type']} et CASH_OUT, car ces deux types "
+        f"portent {fmt_int(total_frauds)} fraudes observees. La precision historique de {fmt_pct(precision, 2)} limite "
+        "la perte de temps analyste sur les alertes. Cote client, le segment premium ne represente que "
+        f"{fmt_pct(premium_share, 1)} de la base mais depense en moyenne {fmt_money(premium['depense_moyenne'])}; "
+        "il doit etre protege par des actions de fidelisation plutot que des campagnes de masse."
+    )
+
+
+def fraud_type_business_insight(summary: pd.DataFrame) -> str:
+    top_rate = summary.iloc[0]
+    max_frauds = summary.sort_values("fraudes", ascending=False).iloc[0]
+    second_rate = summary.iloc[1]
+    ratio = top_rate["taux_fraude"] / second_rate["taux_fraude"] if second_rate["taux_fraude"] else 0
+    zero_types = ", ".join(summary.loc[summary["fraudes"] == 0, "type"].astype(str).tolist())
+    return (
+        f"Decision: appliquer un controle renforce sur {top_rate['type']}. Son taux de fraude est "
+        f"{fmt_pct(top_rate['taux_fraude'], 4)}, soit environ {ratio:.1f} fois le taux de {second_rate['type']}. "
+        f"{max_frauds['type']} porte le plus grand nombre de cas ({fmt_int(max_frauds['fraudes'])} fraudes), donc il doit "
+        "aussi alimenter la file analyste. Les types "
+        f"{zero_types} n'ont aucun cas de fraude dans l'historique: ne pas les bloquer par regle fixe, mais les garder "
+        "en monitoring pour detecter un changement de comportement."
+    )
+
+
+def fraud_timeline_business_insight(step_summary: pd.DataFrame) -> str:
+    by_count = step_summary.sort_values("fraudes", ascending=False)
+    peak = by_count.iloc[0]
+    significant = step_summary[step_summary["transactions"] >= 1000].sort_values("taux_fraude", ascending=False).iloc[0]
+    active_steps = int((step_summary["fraudes"] > 0).sum())
+    return (
+        f"Pic brut: le step {int(peak['step'])} concentre {fmt_int(peak['fraudes'])} fraudes sur "
+        f"{fmt_int(peak['transactions'])} transactions. Sur les fenetres avec au moins 1 000 transactions, le step "
+        f"{int(significant['step'])} est le plus sensible ({fmt_int(significant['fraudes'])} fraudes, "
+        f"{fmt_pct(significant['taux_fraude'], 3)}). Decision: declencher une alerte operationnelle lorsqu'une fenetre "
+        f"depasse 20 fraudes ou franchit 1% de taux de fraude. Les fraudes apparaissent sur {active_steps} steps, donc "
+        "la surveillance doit etre continue, pas seulement ponctuelle."
+    )
+
+
+def fraud_amount_business_insight(fraud_only: pd.DataFrame) -> str:
+    median_amount = fraud_only["amount"].median()
+    p95_amount = fraud_only["amount"].quantile(0.95)
+    top25_sum = fraud_only.sort_values("amount", ascending=False).head(25)["amount"].sum()
+    total_amount = fraud_only["amount"].sum()
+    return (
+        f"Le montant median d'une fraude est {fmt_money(median_amount)}, mais les 5% les plus eleves commencent autour de "
+        f"{fmt_money(p95_amount)}. Les 25 plus grosses fraudes representent {fmt_pct(top25_sum / total_amount, 1)} du montant "
+        "frauduleux total. Decision: creer une file prioritaire 'impact financier' pour les alertes a tres gros montant, "
+        "meme si la probabilite n'est pas la seule variable de tri."
+    )
+
+
+def scoring_business_insight(summary: dict) -> str:
+    manual_review = summary.get("manual_review_transactions", 0)
+    return (
+        f"Avec le seuil actuel ({summary['threshold']:.2f}), le fichier genere {fmt_int(summary['predicted_frauds'])} alertes "
+        f"sur {fmt_int(summary['rows'])} lignes, soit {fmt_pct(summary['predicted_fraud_rate'], 2)} du volume. "
+        f"{fmt_int(summary['critical_transactions'])} transactions sont critiques et {fmt_int(manual_review)} sont en revue manuelle. "
+        "Decision: traiter les critiques en premier; si la capacite analyste est inferieure au nombre d'alertes, relever le seuil "
+        "ou prioriser par montant."
+    )
+
+
+def risk_distribution_insight(risk_counts: pd.DataFrame) -> str:
+    counts = dict(zip(risk_counts["risk_band"], risk_counts["transactions"]))
+    high_priority = counts.get("HIGH", 0) + counts.get("CRITICAL", 0)
+    low = counts.get("LOW", 0)
+    return (
+        f"La file prioritaire contient {fmt_int(high_priority)} transactions HIGH/CRITICAL; {fmt_int(low)} lignes sont LOW et "
+        "peuvent rester en validation automatique. Decision: dimensionner l'equipe analyste sur HIGH/CRITICAL, pas sur le volume "
+        "total du fichier."
+    )
+
+
+def customer_executive_insight(profile: pd.DataFrame, segments: pd.DataFrame) -> str:
+    premium = _segment_row(profile, "Clients premium")
+    dormant = _segment_row(profile, "Clients dormants")
+    global_spend = segments["Total_Spend"].mean()
+    global_response = segments["Response"].mean()
+    return (
+        f"Le segment premium compte {fmt_int(premium['clients'])} clients ({fmt_pct(premium['clients'] / len(segments), 1)}) "
+        f"avec une depense moyenne de {fmt_money(premium['depense_moyenne'])}, soit {premium['depense_moyenne'] / global_spend:.1f} fois "
+        f"la moyenne. Son taux de reponse est {fmt_pct(premium['reponse_campagne'], 1)} contre {fmt_pct(global_response, 1)} globalement. "
+        f"Les dormants restent importants: {fmt_int(dormant['clients'])} clients, depense moyenne {fmt_money(dormant['depense_moyenne'])}, "
+        "mais recence la plus haute. Decision: fideliser les premium et reactiver les dormants avec une offre selective."
+    )
+
+
+def customer_profile_business_insight(profile: pd.DataFrame, segments: pd.DataFrame) -> str:
+    premium = _segment_row(profile, "Clients premium")
+    dormant = _segment_row(profile, "Clients dormants")
+    digital = _segment_row(profile, "Digitaux et promotions")
+    low_value = _segment_row(profile, "Clients economes")
+    return (
+        f"Plan d'action: 1) Premium: {fmt_int(premium['clients'])} clients, reponse {fmt_pct(premium['reponse_campagne'], 1)}; "
+        "programme fidelite et service prioritaire. 2) Dormants: "
+        f"{fmt_int(dormant['clients'])} clients avec forte depense moyenne ({fmt_money(dormant['depense_moyenne'])}); campagne de reactivation "
+        "a cout controle. 3) Digitaux/promotions: "
+        f"{fmt_int(digital['clients'])} clients, {digital['achats_web_moyens']:.1f} achats web et {digital['achats_promo_moyens']:.1f} achats promo moyens; "
+        "campagnes digitales ciblees. 4) Economes: "
+        f"{fmt_int(low_value['clients'])} clients ({fmt_pct(low_value['clients'] / len(segments), 1)}) a faible depense; automatiser les communications."
+    )
+
+
+def spend_business_insight(profile: pd.DataFrame) -> str:
+    value = profile.assign(valeur_segment=profile["clients"] * profile["depense_moyenne"])
+    top_value = value.sort_values("valeur_segment", ascending=False).iloc[0]
+    premium = _segment_row(profile, "Clients premium")
+    low_value = _segment_row(profile, "Clients economes")
+    return (
+        f"Le plus gros potentiel de chiffre d'affaires vient du segment {int(top_value['segment'])} ({top_value['label_metier']}): "
+        f"{fmt_pct(top_value['valeur_segment'] / value['valeur_segment'].sum(), 1)} de la depense totale estimee. "
+        f"Le premium depense {premium['depense_moyenne'] / low_value['depense_moyenne']:.1f} fois plus qu'un client econome. "
+        "Decision: suivre la retention et la valeur par segment, pas seulement le nombre de clients."
+    )
+
+
+def response_business_insight(profile: pd.DataFrame, segments: pd.DataFrame) -> str:
+    best = profile.sort_values("reponse_campagne", ascending=False).iloc[0]
+    global_response = segments["Response"].mean()
+    return (
+        f"Le segment {int(best['segment'])} ({best['label_metier']}) repond a {fmt_pct(best['reponse_campagne'], 1)}, "
+        f"soit {best['reponse_campagne'] / global_response:.1f} fois la moyenne globale. Decision: utiliser ce segment pour les campagnes "
+        "a objectif conversion; pour les segments sous la moyenne, reduire la pression commerciale et tester des messages differents."
+    )
+
+
+def cluster_choice_business_insight(k_scores: pd.DataFrame, selected_k: int) -> str:
+    if k_scores.empty:
+        return "Le nombre de segments doit etre valide par les equipes metier avec les performances de campagne."
+    best = k_scores.sort_values("silhouette", ascending=False).iloc[0]
+    selected = k_scores.loc[k_scores["k"] == selected_k]
+    selected_score = selected.iloc[0]["silhouette"] if not selected.empty else 0
+    return (
+        f"Le meilleur score silhouette statistique est obtenu avec k={int(best['k'])} ({best['silhouette']:.4f}), mais k={selected_k} "
+        f"est retenu avec une silhouette de {selected_score:.4f} car il produit des groupes plus actionnables commercialement. "
+        "Decision: garder k=4 pour la demo entreprise, puis confirmer ce choix par les taux de conversion reels."
+    )
+
+
 def render_sidebar() -> str:
     st.sidebar.title("Fraud Intelligence")
     st.sidebar.caption("Detection de fraude, scoring CSV et segmentation client")
@@ -206,11 +379,6 @@ def render_sidebar() -> str:
 
 
 def render_executive_page(fraud_df: pd.DataFrame, segments: pd.DataFrame, fraud_metrics: dict) -> None:
-    page_header(
-        "Synthese executive",
-        "Vue de pilotage pour dirigeants: performance modele, exposition fraude et valeur client.",
-        "Le risque observe reste rare mais tres sensible: l'enjeu est de prioriser les controles sans bloquer inutilement les transactions normales.",
-    )
     if fraud_df.empty:
         missing_asset("Donnees de fraude indisponibles: fichier detection_fraude.csv absent du deploiement.")
         return
@@ -220,6 +388,11 @@ def render_executive_page(fraud_df: pd.DataFrame, segments: pd.DataFrame, fraud_
     total_transactions = len(fraud_df)
     total_frauds = int(fraud_df["isFraud"].sum())
     profile = segment_labels(customer_profile(segments))
+    page_header(
+        "Synthese executive",
+        "Vue de pilotage pour dirigeants: performance modele, exposition fraude et valeur client.",
+        fraud_executive_insight(fraud_df, fraud_metrics),
+    )
 
     react_kpis(
         [
@@ -255,23 +428,23 @@ def render_executive_page(fraud_df: pd.DataFrame, segments: pd.DataFrame, fraud_
         st.bar_chart(profile.set_index("segment")["clients"])
 
     business_note(
-        "Lecture business.",
-        "La solution priorise les transactions suspectes, reduit la charge analyste et transforme les segments clients en actions marketing ciblees.",
+        "Decision a prendre.",
+        executive_business_insight(fraud_df, segments, fraud_metrics),
     )
 
 
 def render_fraud_page(fraud_df: pd.DataFrame, fraud_metrics: dict) -> None:
-    page_header(
-        "Risque fraude",
-        "Analyse operationnelle des transactions, metriques modele et signaux de fraude a prioriser.",
-        "Les transactions TRANSFER et CASH_OUT concentrent le signal de risque. Elles doivent alimenter une file de revue prioritaire avec un seuil ajuste au cout metier.",
-    )
     if fraud_df.empty:
         missing_asset("Donnees de fraude indisponibles: fichier detection_fraude.csv absent du deploiement.")
         return
     total_transactions = len(fraud_df)
     total_frauds = int(fraud_df["isFraud"].sum())
     fraud_only = fraud_df[fraud_df["isFraud"] == 1]
+    page_header(
+        "Risque fraude",
+        "Analyse operationnelle des transactions, metriques modele et signaux de fraude a prioriser.",
+        fraud_executive_insight(fraud_df, fraud_metrics),
+    )
 
     react_kpis(
         [
@@ -292,24 +465,25 @@ def render_fraud_page(fraud_df: pd.DataFrame, fraud_metrics: dict) -> None:
         display["montant_median"] = display["montant_median"].map(fmt_money)
         st.dataframe(display, width="stretch", hide_index=True)
         business_note(
-            "Lecture business.",
-            "TRANSFER et CASH_OUT concentrent le risque. Ces operations doivent etre surveillees avec un seuil plus strict.",
+            "Decision par type.",
+            fraud_type_business_insight(summary),
         )
 
     with right:
         st.subheader("Fraudes dans le temps")
-        step_data = fraud_step_summary(fraud_df).set_index("step")["fraudes"]
+        step_summary = fraud_step_summary(fraud_df)
+        step_data = step_summary.set_index("step")["fraudes"]
         st.line_chart(step_data)
         business_note(
-            "Lecture business.",
-            "Ce graphique aide a reperer les periodes ou le risque augmente et peut declencher un controle renforce.",
+            "Decision temporelle.",
+            fraud_timeline_business_insight(step_summary),
         )
 
     st.subheader("Transactions frauduleuses les plus importantes")
     st.dataframe(fraud_only.sort_values("amount", ascending=False).head(25), width="stretch", hide_index=True)
     business_note(
-        "Lecture business.",
-        "Cette liste sert de file de travail pour les analystes. Les montants les plus eleves sont a traiter en priorite.",
+        "Decision par impact financier.",
+        fraud_amount_business_insight(fraud_only),
     )
 
 
@@ -340,8 +514,8 @@ def render_scored_results(scored: pd.DataFrame, threshold: float, delimiter: str
     )
 
     business_note(
-        "Lecture business.",
-        "Ces indicateurs permettent de dimensionner la charge de revue et de prioriser les controles.",
+        "Decision de seuil.",
+        scoring_business_insight(summary),
     )
 
     risk_order = ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
@@ -355,8 +529,8 @@ def render_scored_results(scored: pd.DataFrame, threshold: float, delimiter: str
     st.subheader("Repartition des niveaux de risque")
     st.bar_chart(risk_counts.set_index("risk_band")["transactions"])
     business_note(
-        "Lecture business.",
-        "LOW peut etre automatise. MEDIUM demande une surveillance. HIGH et CRITICAL alimentent la file de revue prioritaire.",
+        "Priorisation de la file analyste.",
+        risk_distribution_insight(risk_counts),
     )
 
     st.subheader("Transactions les plus risquees")
@@ -378,7 +552,7 @@ def render_operational_scoring_page() -> None:
     page_header(
         "Scoring operationnel",
         "Saisissez une transaction ou importez un fichier CSV pour obtenir le risque et l'action recommandee.",
-        "Cette page est l'outil utilisable par une equipe metier: controle du format, scoring en volume, niveau de risque et export des decisions.",
+        "Le fichier est accepte seulement si son schema est conforme. La decision produite n'est pas seulement une prediction: elle transforme chaque ligne en action exploitable par les equipes risque.",
     )
     model = load_fraud_model()
     if model is None:
@@ -499,8 +673,9 @@ def render_operational_scoring_page() -> None:
             st.subheader("Apercu des donnees validees")
             st.dataframe(validation.dataframe.head(20), width="stretch", hide_index=True)
             business_note(
-                "Lecture business.",
-                "Le controle qualite evite de produire des predictions sur un fichier incomplet ou mal formate.",
+                "Decision qualite.",
+                f"Le fichier contient {fmt_int(len(validation.dataframe))} lignes conformes et {fmt_int(len(validation.dataframe.columns))} colonnes controlees. "
+                "Il peut etre score sans retraitement manuel. Si le fichier avait une colonne obligatoire manquante ou un type invalide, il serait rejete avant prediction pour eviter une decision metier fausse.",
             )
 
             if st.button("Valider et scorer le fichier", type="primary", width="stretch"):
@@ -519,21 +694,21 @@ def render_operational_scoring_page() -> None:
             width="stretch",
         )
         business_note(
-            "Lecture business.",
-            "Le modele CSV donne aux equipes metiers un format unique et reduit les erreurs d'import.",
+            "Decision d'exploitation.",
+            "Ce modele CSV fixe un contrat de donnees unique entre les equipes metier et la solution de scoring. En production, tout fichier non conforme doit etre retourne a l'emetteur avant scoring.",
         )
 
 
 def render_customer_page(segments: pd.DataFrame, clustering_metrics: dict, k_scores: pd.DataFrame) -> None:
-    page_header(
-        "Segments clients",
-        "Profils marketing actionnables pour la fidelisation, la reactivation et les campagnes ciblees.",
-        "Les segments transforment les donnees client en plans d'action: fidelisation premium, reactivation dormants et ciblage promotionnel.",
-    )
     if segments.empty:
         missing_asset("Segments clients indisponibles: fichier data/processed/customer_segments.csv absent du deploiement.")
         return
     profile = segment_labels(customer_profile(segments))
+    page_header(
+        "Segments clients",
+        "Profils marketing actionnables pour la fidelisation, la reactivation et les campagnes ciblees.",
+        customer_executive_insight(profile, segments),
+    )
     react_kpis(
         [
             {"label": "Clients", "value": fmt_int(len(segments)), "detail": "Base CRM analysee"},
@@ -550,8 +725,8 @@ def render_customer_page(segments: pd.DataFrame, clustering_metrics: dict, k_sco
     display["reponse_campagne"] = display["reponse_campagne"].map(lambda value: fmt_pct(value, 1))
     st.dataframe(display, width="stretch", hide_index=True)
     business_note(
-        "Lecture business.",
-        "Chaque segment doit recevoir une action differente: fidelisation, reactivation, offres ciblees ou campagnes economes.",
+        "Plan d'action segment.",
+        customer_profile_business_insight(profile, segments),
     )
 
     left, right = st.columns(2)
@@ -559,32 +734,32 @@ def render_customer_page(segments: pd.DataFrame, clustering_metrics: dict, k_sco
         st.subheader("Depense moyenne")
         st.bar_chart(profile.set_index("segment")["depense_moyenne"])
         business_note(
-            "Lecture business.",
-            "Les segments avec depense elevee sont prioritaires pour la fidelisation.",
+            "Decision valeur.",
+            spend_business_insight(profile),
         )
 
     with right:
         st.subheader("Reponse campagne")
         st.bar_chart(profile.set_index("segment")["reponse_campagne"])
         business_note(
-            "Lecture business.",
-            "Le taux de reponse indique les segments ou les campagnes ont le plus de chances de convertir.",
+            "Decision campagne.",
+            response_business_insight(profile, segments),
         )
 
     st.subheader("Projection revenu / depense")
     plot_data = segments.sample(min(1500, len(segments)), random_state=42)
     st.scatter_chart(plot_data, x="Income", y="Total_Spend", color="segment")
     business_note(
-        "Lecture business.",
-        "La projection revenu / depense aide a distinguer les clients a fort potentiel des clients a faible valeur actuelle.",
+        "Decision ciblage.",
+        "La projection revenu/depense sert a isoler les clients a fort potentiel: revenu eleve et depense elevee pour fidelisation, revenu eleve mais depense faible pour stimulation, faible revenu/faible depense pour campagnes automatisees a faible cout.",
     )
 
     if not k_scores.empty:
         st.subheader("Comparaison des nombres de clusters")
         st.dataframe(k_scores, width="stretch", hide_index=True)
         business_note(
-            "Lecture business.",
-            "Le nombre de segments doit rester lisible et actionnable pour les equipes marketing.",
+            "Decision clustering.",
+            cluster_choice_business_insight(k_scores, profile["segment"].nunique()),
         )
 
 

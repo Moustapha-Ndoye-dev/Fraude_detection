@@ -81,6 +81,15 @@
       border-radius: 10px;
       padding: 20px;
     }
+    .decision {
+      background: #fffbeb;
+      border: 1px solid #fedf89;
+      border-left: 6px solid #b54708;
+      border-radius: 10px;
+      color: #344054;
+      margin-top: 18px;
+      padding: 16px 18px;
+    }
     ul { margin: 10px 0 0 20px; padding: 0; color: var(--muted); }
     li { margin: 6px 0; }
     footer { color: var(--muted); margin-top: 30px; text-align: center; font-size: 0.9rem; }
@@ -115,7 +124,7 @@
 
     <section class="card insight">
       <h2>Lecture executive</h2>
-      <p>Le projet transforme deux jeux de donnees bruts en outil decisionnel exploitable. Le modele fraude priorise les transactions suspectes, tandis que la segmentation client donne des leviers marketing actionnables.</p>
+      <p>Sur 1 048 575 transactions, 1 142 fraudes sont observees (0.109%). Les fraudes historiques sont concentrees sur TRANSFER et CASH_OUT. Le modele retrouve environ 97.81% des fraudes, ce qui permet de prioriser une file analyste courte par rapport au volume total.</p>
     </section>
 
     <section class="grid two">
@@ -156,17 +165,23 @@
 <tr><td>DEBIT</td><td>7 178</td><td>0</td><td>0.0000%</td><td>3 247</td></tr>
 <tr><td>PAYMENT</td><td>353 873</td><td>0</td><td>0.0000%</td><td>8 598</td></tr></tbody>
       </table>
+      <div class="decision">
+        <strong>Decision.</strong> Appliquer un controle renforce sur TRANSFER: taux de fraude 0.6501%, environ 4.2 fois CASH_OUT. CASH_OUT porte le plus grand nombre de cas (578). Les types CASH_IN, DEBIT, PAYMENT n'ont aucun cas historique: monitoring plutot que blocage automatique.
+      </div>
     </section>
 
     <section class="card">
       <h2>Profils clients</h2>
       <table>
-        <thead><tr><th>Segment</th><th>Clients</th><th>Revenu median</th><th>Depense moyenne</th><th>Reponse campagne</th></tr></thead>
-        <tbody><tr><td>0</td><td>1 036</td><td>34 478</td><td>97</td><td>8.6%</td></tr>
-<tr><td>1</td><td>155</td><td>81 973</td><td>1 618</td><td>74.2%</td></tr>
-<tr><td>2</td><td>466</td><td>73 698</td><td>1 275</td><td>13.5%</td></tr>
-<tr><td>3</td><td>583</td><td>57 718</td><td>705</td><td>11.5%</td></tr></tbody>
+        <thead><tr><th>Segment</th><th>Profil</th><th>Clients</th><th>Revenu median</th><th>Depense moyenne</th><th>Reponse campagne</th></tr></thead>
+        <tbody><tr><td>0</td><td>Clients economes</td><td>1 036</td><td>34 478</td><td>97</td><td>8.6%</td></tr>
+<tr><td>1</td><td>Clients premium</td><td>155</td><td>81 973</td><td>1 618</td><td>74.2%</td></tr>
+<tr><td>2</td><td>Clients dormants</td><td>466</td><td>73 698</td><td>1 275</td><td>13.5%</td></tr>
+<tr><td>3</td><td>Digitaux et promotions</td><td>583</td><td>57 718</td><td>705</td><td>11.5%</td></tr></tbody>
       </table>
+      <div class="decision">
+        <strong>Decision.</strong> Le segment premium compte 155 clients (6.9%) mais depense 2.7 fois la moyenne et repond a 74.2% contre 14.9% globalement. Les dormants (466 clients) gardent une forte depense moyenne: campagne de reactivation selective.
+      </div>
     </section>
 
     <section class="grid two">
@@ -176,20 +191,22 @@
           <li>Saisie manuelle d'une transaction pour decision immediate.</li>
           <li>Import CSV de gros volume avec controle de schema.</li>
           <li>Export d'un fichier score contenant probabilite, risque et action recommandee.</li>
+          <li>Les 25 plus grosses fraudes representent 17.9% du montant frauduleux total: priorisation par montant recommandee.</li>
         </ul>
       </article>
       <article class="card">
-        <h2>Livrables</h2>
+        <h2>Actions recommandees</h2>
         <ul>
-          <li>Dashboard: <strong>dashboard/app.py</strong></li>
-          <li>Rapport HTML: <strong>reports/rapport_final.html</strong></li>
-          <li>Presentation: <strong>PRESENTATION_ENTREPRISE.md</strong></li>
-          <li>Depot GitHub propre et deployable sur Streamlit Cloud.</li>
+          <li>Fraude: revue prioritaire sur TRANSFER/CASH_OUT et sur les montants au-dessus de 5 970 628.</li>
+          <li>Premium: fidelisation, avantages et service prioritaire.</li>
+          <li>Dormants: reactivation controlee, car leur valeur reste elevee.</li>
+          <li>Digitaux/promotions: campagnes web ciblees, avec controle du cout promotionnel.</li>
+          <li>Economes: automatisation marketing a faible cout.</li>
         </ul>
       </article>
     </section>
 
-    <footer>Rapport genere le 24/05/2026 17:41 - Fraud Intelligence</footer>
+    <footer>Rapport genere le 24/05/2026 18:03 - Fraud Intelligence</footer>
   </main>
 </body>
 </html>

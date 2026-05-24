@@ -30,6 +30,20 @@ def table_rows(rows: list[list[str]]) -> str:
     )
 
 
+def segment_label_table(profile: pd.DataFrame) -> pd.DataFrame:
+    profile = profile.copy()
+    profile["label_metier"] = "Clients economes"
+    profile.loc[profile["depense_moyenne"].idxmax(), "label_metier"] = "Clients premium"
+    profile.loc[profile["recence_moyenne"].idxmax(), "label_metier"] = "Clients dormants"
+    web_promo_score = profile["achats_web_moyens"].rank() + profile["achats_promo_moyens"].rank()
+    profile.loc[web_promo_score.idxmax(), "label_metier"] = "Digitaux et promotions"
+    return profile
+
+
+def segment_row(profile: pd.DataFrame, label: str) -> pd.Series:
+    return profile.loc[profile["label_metier"] == label].iloc[0]
+
+
 def build_report() -> str:
     fraud_metrics = load_json(ROOT / "reports" / "fraud_metrics.json")
     cluster_metrics = load_json(ROOT / "reports" / "customer_clustering_metrics.json")
@@ -52,11 +66,29 @@ def build_report() -> str:
             clients=("ID", "size"),
             revenu_median=("Income", "median"),
             depense_moyenne=("Total_Spend", "mean"),
+            achats_web_moyens=("NumWebPurchases", "mean"),
+            achats_promo_moyens=("NumDealsPurchases", "mean"),
+            recence_moyenne=("Recency", "mean"),
             reponse_campagne=("Response", "mean"),
         )
         .reset_index()
         .sort_values("segment")
     )
+    customer_summary = segment_label_table(customer_summary)
+
+    top_rate = type_summary.iloc[0]
+    second_rate = type_summary.iloc[1]
+    max_frauds = type_summary.sort_values("fraudes", ascending=False).iloc[0]
+    zero_types = ", ".join(type_summary.loc[type_summary["fraudes"] == 0, "type"].astype(str).tolist())
+    fraud_only = fraud_df[fraud_df["isFraud"] == 1]
+    p95_amount = fraud_only["amount"].quantile(0.95)
+    top25_share = fraud_only.sort_values("amount", ascending=False).head(25)["amount"].sum() / fraud_only["amount"].sum()
+    premium = segment_row(customer_summary, "Clients premium")
+    dormant = segment_row(customer_summary, "Clients dormants")
+    digital = segment_row(customer_summary, "Digitaux et promotions")
+    low_value = segment_row(customer_summary, "Clients economes")
+    global_spend = segments["Total_Spend"].mean()
+    global_response = segments["Response"].mean()
 
     type_rows = [
         [
@@ -71,6 +103,7 @@ def build_report() -> str:
     segment_rows = [
         [
             str(row.segment),
+            str(row.label_metier),
             fmt_int(row.clients),
             fmt_int(row.revenu_median),
             fmt_int(row.depense_moyenne),
@@ -163,6 +196,15 @@ def build_report() -> str:
       border-radius: 10px;
       padding: 20px;
     }}
+    .decision {{
+      background: #fffbeb;
+      border: 1px solid #fedf89;
+      border-left: 6px solid #b54708;
+      border-radius: 10px;
+      color: #344054;
+      margin-top: 18px;
+      padding: 16px 18px;
+    }}
     ul {{ margin: 10px 0 0 20px; padding: 0; color: var(--muted); }}
     li {{ margin: 6px 0; }}
     footer {{ color: var(--muted); margin-top: 30px; text-align: center; font-size: 0.9rem; }}
@@ -197,7 +239,7 @@ def build_report() -> str:
 
     <section class="card insight">
       <h2>Lecture executive</h2>
-      <p>Le projet transforme deux jeux de donnees bruts en outil decisionnel exploitable. Le modele fraude priorise les transactions suspectes, tandis que la segmentation client donne des leviers marketing actionnables.</p>
+      <p>Sur {fmt_int(len(fraud_df))} transactions, {fmt_int(fraud_count)} fraudes sont observees ({fmt_pct(fraud_rate, 3)}). Les fraudes historiques sont concentrees sur TRANSFER et CASH_OUT. Le modele retrouve environ {fmt_pct(fraud_metrics.get("recall", 0), 2)} des fraudes, ce qui permet de prioriser une file analyste courte par rapport au volume total.</p>
     </section>
 
     <section class="grid two">
@@ -234,14 +276,20 @@ def build_report() -> str:
         <thead><tr><th>Type</th><th>Transactions</th><th>Fraudes</th><th>Taux fraude</th><th>Montant median</th></tr></thead>
         <tbody>{table_rows(type_rows)}</tbody>
       </table>
+      <div class="decision">
+        <strong>Decision.</strong> Appliquer un controle renforce sur {top_rate['type']}: taux de fraude {fmt_pct(top_rate['taux_fraude'], 4)}, environ {top_rate['taux_fraude'] / second_rate['taux_fraude']:.1f} fois {second_rate['type']}. {max_frauds['type']} porte le plus grand nombre de cas ({fmt_int(max_frauds['fraudes'])}). Les types {zero_types} n'ont aucun cas historique: monitoring plutot que blocage automatique.
+      </div>
     </section>
 
     <section class="card">
       <h2>Profils clients</h2>
       <table>
-        <thead><tr><th>Segment</th><th>Clients</th><th>Revenu median</th><th>Depense moyenne</th><th>Reponse campagne</th></tr></thead>
+        <thead><tr><th>Segment</th><th>Profil</th><th>Clients</th><th>Revenu median</th><th>Depense moyenne</th><th>Reponse campagne</th></tr></thead>
         <tbody>{table_rows(segment_rows)}</tbody>
       </table>
+      <div class="decision">
+        <strong>Decision.</strong> Le segment premium compte {fmt_int(premium['clients'])} clients ({fmt_pct(premium['clients'] / len(segments), 1)}) mais depense {premium['depense_moyenne'] / global_spend:.1f} fois la moyenne et repond a {fmt_pct(premium['reponse_campagne'], 1)} contre {fmt_pct(global_response, 1)} globalement. Les dormants ({fmt_int(dormant['clients'])} clients) gardent une forte depense moyenne: campagne de reactivation selective.
+      </div>
     </section>
 
     <section class="grid two">
@@ -251,15 +299,17 @@ def build_report() -> str:
           <li>Saisie manuelle d'une transaction pour decision immediate.</li>
           <li>Import CSV de gros volume avec controle de schema.</li>
           <li>Export d'un fichier score contenant probabilite, risque et action recommandee.</li>
+          <li>Les 25 plus grosses fraudes representent {fmt_pct(top25_share, 1)} du montant frauduleux total: priorisation par montant recommandee.</li>
         </ul>
       </article>
       <article class="card">
-        <h2>Livrables</h2>
+        <h2>Actions recommandees</h2>
         <ul>
-          <li>Dashboard: <strong>dashboard/app.py</strong></li>
-          <li>Rapport HTML: <strong>reports/rapport_final.html</strong></li>
-          <li>Presentation: <strong>PRESENTATION_ENTREPRISE.md</strong></li>
-          <li>Depot GitHub propre et deployable sur Streamlit Cloud.</li>
+          <li>Fraude: revue prioritaire sur TRANSFER/CASH_OUT et sur les montants au-dessus de {fmt_int(p95_amount)}.</li>
+          <li>Premium: fidelisation, avantages et service prioritaire.</li>
+          <li>Dormants: reactivation controlee, car leur valeur reste elevee.</li>
+          <li>Digitaux/promotions: campagnes web ciblees, avec controle du cout promotionnel.</li>
+          <li>Economes: automatisation marketing a faible cout.</li>
         </ul>
       </article>
     </section>

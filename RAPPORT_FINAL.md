@@ -41,8 +41,18 @@ Interpretation metier:
 
 - le taux de fraude est tres faible, donc l'accuracy seule n'est pas suffisante;
 - le recall est prioritaire car une fraude non detectee coute cher a l'entreprise;
-- les types `TRANSFER` et `CASH_OUT` concentrent le risque;
-- le seuil de decision doit rester configurable selon le cout des faux positifs et faux negatifs.
+- 100% des fraudes observees sont concentrees sur `TRANSFER` et `CASH_OUT`;
+- `TRANSFER` presente le taux de fraude le plus eleve: 0,6501%, environ 4,2 fois `CASH_OUT`;
+- `CASH_OUT` porte le plus grand nombre de cas absolus: 578 fraudes observees;
+- les 25 plus grosses fraudes representent environ 17,9% du montant frauduleux total;
+- le seuil de decision doit rester configurable selon le cout des faux positifs, la capacite analyste et le montant financier expose.
+
+Decision recommandee:
+
+- traiter `TRANSFER` et `CASH_OUT` en file prioritaire;
+- ne pas bloquer automatiquement `PAYMENT`, `CASH_IN` et `DEBIT`, qui n'ont aucun cas historique dans ce jeu de donnees, mais les conserver sous monitoring;
+- creer une priorisation par montant pour les tres grosses alertes;
+- analyser les faux negatifs pour reduire les fraudes non detectees.
 
 ## 4. Segmentation client
 
@@ -66,10 +76,18 @@ Profils metiers:
 
 Interpretation metier:
 
-- les clients premium sont prioritaires pour la fidelisation;
-- les clients dormants doivent recevoir des campagnes de reactivation;
-- les clients sensibles aux promotions sont utiles pour les campagnes ciblees;
-- les segments doivent etre suivis dans le temps pour mesurer leur stabilite.
+- les clients premium sont prioritaires pour la fidelisation: 155 clients, 6,9% de la base, mais 1 618 de depense moyenne et 74,2% de reponse campagne;
+- les clients dormants doivent recevoir des campagnes de reactivation: 466 clients avec une depense moyenne elevee de 1 275;
+- les clients digitaux et promotions representent 583 clients, avec les plus forts usages web et promotions;
+- les clients economes representent 1 036 clients, mais avec faible depense moyenne: ils doivent etre traites par automatisation a faible cout;
+- les segments doivent etre suivis dans le temps pour mesurer leur stabilite et leur conversion reelle.
+
+Decision recommandee:
+
+- fideliser les premium sans trop les pousser a la promotion;
+- reactiver les dormants avec une offre limitee et mesuree;
+- utiliser les canaux digitaux pour le segment digital/promotion;
+- automatiser les campagnes du segment econome pour proteger la rentabilite.
 
 ## 5. Dashboard
 
