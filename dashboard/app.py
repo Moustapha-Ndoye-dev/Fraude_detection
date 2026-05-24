@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import json
 import sys
 from io import BytesIO
@@ -12,12 +13,11 @@ import streamlit as st
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
+import ml_project.features.customers as customers_module
+
+importlib.reload(customers_module)
+
 from ml_project.config import PATHS
-from ml_project.features.customers import (
-    customer_segment_profile,
-    label_customer_segments,
-    segment_by_label,
-)
 from ml_project.serving.fraud_scoring import (
     expected_fraud_schema,
     score_fraud_dataframe,
@@ -25,6 +25,10 @@ from ml_project.serving.fraud_scoring import (
     template_fraud_csv,
     validate_fraud_input,
 )
+
+build_segment_lookup = customers_module.build_segment_lookup
+customer_segment_profile = customers_module.customer_segment_profile
+label_customer_segments = customers_module.label_customer_segments
 
 
 st.set_page_config(
@@ -151,11 +155,16 @@ def load_fraud_data() -> pd.DataFrame:
 
 
 @st.cache_data(show_spinner="Chargement des segments clients...")
-def load_customer_segments() -> pd.DataFrame:
+def load_customer_segments(_cache_key: float) -> pd.DataFrame:
     path = PATHS.processed_dir / "customer_segments.csv"
     if not path.exists():
         return pd.DataFrame()
     return pd.read_csv(path)
+
+
+def customer_segments_cache_key() -> float:
+    path = PATHS.processed_dir / "customer_segments.csv"
+    return path.stat().st_mtime if path.exists() else 0.0
 
 
 @st.cache_data(show_spinner=False)
@@ -234,11 +243,15 @@ def fraud_executive_insight(fraud_df: pd.DataFrame, fraud_metrics: dict) -> str:
     )
 
 
-def executive_business_insight(fraud_df: pd.DataFrame, segments: pd.DataFrame, fraud_metrics: dict) -> str:
+def executive_business_insight(
+    fraud_df: pd.DataFrame,
+    segments: pd.DataFrame,
+    fraud_metrics: dict,
+    segment_lookup: dict[str, pd.Series],
+) -> str:
     total_frauds = int(fraud_df["isFraud"].sum())
     summary = fraud_type_summary(fraud_df)
-    profile = label_customer_segments(customer_segment_profile(segments))
-    premium = segment_by_label(profile, "Clients premium")
+    premium = segment_lookup["Clients premium"]
     premium_share = premium["clients"] / len(segments)
     precision = fraud_metrics.get("precision", 0)
     top_fraud_type = summary.iloc[0]
@@ -317,9 +330,9 @@ def risk_distribution_insight(risk_counts: pd.DataFrame) -> str:
     )
 
 
-def customer_executive_insight(profile: pd.DataFrame, segments: pd.DataFrame) -> str:
-    premium = segment_by_label(profile, "Clients premium")
-    dormant = segment_by_label(profile, "Clients dormants")
+def customer_executive_insight(segment_lookup: dict[str, pd.Series], segments: pd.DataFrame) -> str:
+    premium = segment_lookup["Clients premium"]
+    dormant = segment_lookup["Clients dormants"]
     global_spend = segments["Total_Spend"].mean()
     global_response = segments["Response"].mean()
     return (
@@ -331,11 +344,11 @@ def customer_executive_insight(profile: pd.DataFrame, segments: pd.DataFrame) ->
     )
 
 
-def customer_profile_business_insight(profile: pd.DataFrame, segments: pd.DataFrame) -> str:
-    premium = segment_by_label(profile, "Clients premium")
-    dormant = segment_by_label(profile, "Clients dormants")
-    digital = segment_by_label(profile, "Digitaux et promotions")
-    low_value = segment_by_label(profile, "Clients economes")
+def customer_profile_business_insight(segment_lookup: dict[str, pd.Series], segments: pd.DataFrame) -> str:
+    premium = segment_lookup["Clients premium"]
+    dormant = segment_lookup["Clients dormants"]
+    digital = segment_lookup["Digitaux et promotions"]
+    low_value = segment_lookup["Clients economes"]
     return (
         f"Plan d'action: 1) Premium: {fmt_int(premium['clients'])} clients, reponse {fmt_pct(premium['reponse_campagne'], 1)}; "
         "programme fidelite et service prioritaire. 2) Dormants: "
@@ -347,21 +360,31 @@ def customer_profile_business_insight(profile: pd.DataFrame, segments: pd.DataFr
     )
 
 
-def spend_business_insight(profile: pd.DataFrame) -> str:
+def spend_business_insight(profile: pd.DataFrame, segment_lookup: dict[str, pd.Series]) -> str:
+    if profile.empty:
+        return "Aucun profil segment disponible pour estimer la valeur par segment."
     value = profile.assign(valeur_segment=profile["clients"] * profile["depense_moyenne"])
+    if value.empty or value["valeur_segment"].sum() == 0:
+        return "Les profils segments ne contiennent pas encore assez de donnees pour comparer la valeur."
     top_value = value.sort_values("valeur_segment", ascending=False).iloc[0]
-    premium = segment_by_label(profile, "Clients premium")
-    low_value = segment_by_label(profile, "Clients economes")
+    premium = segment_lookup["Clients premium"]
+    low_value = segment_lookup["Clients economes"]
+    low_spend = low_value["depense_moyenne"] or 1
     return (
         f"Le plus gros potentiel de chiffre d'affaires vient du segment {int(top_value['segment'])} ({top_value['label_metier']}): "
         f"{fmt_pct(top_value['valeur_segment'] / value['valeur_segment'].sum(), 1)} de la depense totale estimee. "
-        f"Le premium depense {premium['depense_moyenne'] / low_value['depense_moyenne']:.1f} fois plus qu'un client econome. "
+        f"Le premium depense {premium['depense_moyenne'] / low_spend:.1f} fois plus qu'un client econome. "
         "Decision: suivre la retention et la valeur par segment, pas seulement le nombre de clients."
     )
 
 
 def response_business_insight(profile: pd.DataFrame, segments: pd.DataFrame) -> str:
-    best = profile.sort_values("reponse_campagne", ascending=False).iloc[0]
+    if profile.empty:
+        return "Aucun profil segment disponible pour comparer la reponse campagne."
+    ranked = profile.sort_values("reponse_campagne", ascending=False)
+    if ranked.empty:
+        return "Aucun profil segment disponible pour comparer la reponse campagne."
+    best = ranked.iloc[0]
     global_response = segments["Response"].mean()
     return (
         f"Le segment {int(best['segment'])} ({best['label_metier']}) repond a {fmt_pct(best['reponse_campagne'], 1)}, "
@@ -417,6 +440,7 @@ def render_executive_page(fraud_df: pd.DataFrame, segments: pd.DataFrame, fraud_
     total_transactions = len(fraud_df)
     total_frauds = int(fraud_df["isFraud"].sum())
     profile = label_customer_segments(customer_segment_profile(segments))
+    segment_lookup = build_segment_lookup(profile, already_labeled=True)
     report_header("introduction")
 
     react_kpis(
@@ -454,7 +478,7 @@ def render_executive_page(fraud_df: pd.DataFrame, segments: pd.DataFrame, fraud_
 
     business_note(
         "Lecture executive.",
-        executive_business_insight(fraud_df, segments, fraud_metrics),
+        executive_business_insight(fraud_df, segments, fraud_metrics, segment_lookup),
     )
 
 
@@ -663,18 +687,31 @@ def render_operational_scoring_page() -> None:
             st.warning("Aucun fichier importe. Le fichier doit respecter le format attendu.")
         else:
             file_bytes = uploaded_file.getvalue()
-            try:
-                input_df = pd.read_csv(BytesIO(file_bytes), sep=delimiter)
-            except Exception as exc:
-                st.error(f"Lecture CSV impossible: {exc}")
-                return
+            validation = None
+            input_df = None
 
-            validation = validate_fraud_input(input_df, strict=strict)
-            if not validation.is_valid:
-                st.error("Fichier rejete: le schema ou les valeurs ne sont pas conformes.")
-                for error in validation.errors:
-                    st.write(f"- {error}")
-                return
+            with st.status("Chargement et controle du CSV...", expanded=True) as load_status:
+                st.write("Lecture du fichier...")
+                try:
+                    input_df = pd.read_csv(BytesIO(file_bytes), sep=delimiter)
+                except Exception as exc:
+                    load_status.update(label="Echec de lecture du CSV", state="error")
+                    st.error(f"Lecture CSV impossible: {exc}")
+                    return
+
+                st.write(f"{fmt_int(len(input_df))} lignes detectees — verification du schema...")
+                validation = validate_fraud_input(input_df, strict=strict)
+                if not validation.is_valid:
+                    load_status.update(label="Fichier rejete", state="error")
+                    st.error("Fichier rejete: le schema ou les valeurs ne sont pas conformes.")
+                    for error in validation.errors:
+                        st.write(f"- {error}")
+                    return
+
+                load_status.update(
+                    label=f"Fichier valide — {fmt_int(len(validation.dataframe))} transactions pretes",
+                    state="complete",
+                )
 
             for warning in validation.warnings:
                 st.warning(warning)
@@ -696,8 +733,17 @@ def render_operational_scoring_page() -> None:
             )
 
             if st.button("Valider et scorer le fichier", type="primary", width="stretch"):
-                with st.spinner("Scoring du fichier en cours..."):
+                progress = st.progress(0, text="Preparation du scoring...")
+                with st.status("Scoring du fichier en cours...", expanded=True) as score_status:
+                    st.write(f"Calcul des scores sur {fmt_int(len(validation.dataframe))} transactions...")
+                    progress.progress(35, text="Application du modele de fraude...")
                     scored = score_fraud_dataframe(model, validation.dataframe, threshold=threshold)
+                    progress.progress(85, text="Construction du rapport de risque...")
+                    score_status.update(
+                        label=f"Scoring termine — {fmt_int(len(scored))} transactions analysees",
+                        state="complete",
+                    )
+                progress.progress(100, text="Scoring termine.")
                 render_scored_results(scored, threshold, delimiter, "fraud_scoring_results.csv")
 
     with schema_tab:
@@ -721,6 +767,13 @@ def render_customer_page(segments: pd.DataFrame, clustering_metrics: dict, k_sco
         missing_asset("Segments clients indisponibles: fichier data/processed/customer_segments.csv absent du deploiement.")
         return
     profile = label_customer_segments(customer_segment_profile(segments))
+    if profile.empty:
+        missing_asset(
+            "Profils segments indisponibles: la colonne segment est absente, vide ou invalide. "
+            "Relancer: python scripts/compare_clustering_models.py"
+        )
+        return
+    segment_lookup = build_segment_lookup(profile, already_labeled=True)
     report_header("segmentation")
     react_kpis(
         [
@@ -739,7 +792,7 @@ def render_customer_page(segments: pd.DataFrame, clustering_metrics: dict, k_sco
     st.dataframe(display, width="stretch", hide_index=True)
     business_note(
         "Plan d'action segment.",
-        customer_profile_business_insight(profile, segments),
+        customer_profile_business_insight(segment_lookup, segments),
     )
 
     left, right = st.columns(2)
@@ -748,7 +801,7 @@ def render_customer_page(segments: pd.DataFrame, clustering_metrics: dict, k_sco
         st.bar_chart(profile.set_index("segment")["depense_moyenne"])
         business_note(
             "Decision valeur.",
-            spend_business_insight(profile),
+            spend_business_insight(profile, segment_lookup),
         )
 
     with right:
@@ -790,7 +843,7 @@ else:
     fraud_data = pd.DataFrame()
 
 if page_key in {"introduction", "segmentation"}:
-    customer_segments = load_customer_segments()
+    customer_segments = load_customer_segments(customer_segments_cache_key())
 else:
     customer_segments = pd.DataFrame()
 
