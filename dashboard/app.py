@@ -28,6 +28,8 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+from react_widgets import react_hero, react_insight, react_kpis
+
 
 def fmt_int(value: float | int) -> str:
     return f"{value:,.0f}".replace(",", " ")
@@ -42,8 +44,11 @@ def fmt_pct(value: float, digits: int = 2) -> str:
 
 
 def page_header(title: str, subtitle: str) -> None:
-    st.title(title)
-    st.caption(subtitle)
+    react_hero(
+        title,
+        subtitle,
+        chips=["Production", "Scoring CSV", "Lecture business"],
+    )
 
 
 def show_metric(label: str, value: str, help_text: str | None = None) -> None:
@@ -51,7 +56,7 @@ def show_metric(label: str, value: str, help_text: str | None = None) -> None:
 
 
 def business_note(title: str, body: str) -> None:
-    st.info(f"**{title}**\n\n{body}")
+    react_insight(title, body)
 
 
 @st.cache_data(show_spinner=False)
@@ -210,11 +215,28 @@ def render_executive_page(fraud_df: pd.DataFrame, segments: pd.DataFrame, fraud_
     total_frauds = int(fraud_df["isFraud"].sum())
     profile = segment_labels(customer_profile(segments))
 
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Transactions analysees", fmt_int(total_transactions))
-    c2.metric("Taux de fraude", fmt_pct(total_frauds / total_transactions, 3), f"{fmt_int(total_frauds)} cas")
-    c3.metric("Recall modele", fmt_pct(fraud_metrics.get("recall", 0), 2))
-    c4.metric("Clients segmentes", fmt_int(len(segments)), f"{profile['segment'].nunique()} profils")
+    react_kpis(
+        [
+            {"label": "Transactions analysees", "value": fmt_int(total_transactions), "detail": "Historique complet"},
+            {
+                "label": "Taux de fraude",
+                "value": fmt_pct(total_frauds / total_transactions, 3),
+                "detail": f"{fmt_int(total_frauds)} cas observes",
+                "tone": "risk",
+            },
+            {
+                "label": "Recall modele",
+                "value": fmt_pct(fraud_metrics.get("recall", 0), 2),
+                "detail": "Fraudes retrouvees",
+                "tone": "good",
+            },
+            {
+                "label": "Clients segmentes",
+                "value": fmt_int(len(segments)),
+                "detail": f"{profile['segment'].nunique()} profils metiers",
+            },
+        ]
+    )
 
     left, right = st.columns(2)
     with left:
@@ -244,12 +266,15 @@ def render_fraud_page(fraud_df: pd.DataFrame, fraud_metrics: dict) -> None:
     total_frauds = int(fraud_df["isFraud"].sum())
     fraud_only = fraud_df[fraud_df["isFraud"] == 1]
 
-    c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("Transactions", fmt_int(total_transactions))
-    c2.metric("Fraudes observees", fmt_int(total_frauds))
-    c3.metric("Taux historique", fmt_pct(total_frauds / total_transactions, 3))
-    c4.metric("F1-score", fmt_pct(fraud_metrics.get("f1", 0), 2))
-    c5.metric("ROC-AUC", f"{fraud_metrics.get('roc_auc', 0):.4f}")
+    react_kpis(
+        [
+            {"label": "Transactions", "value": fmt_int(total_transactions), "detail": "Base analysee"},
+            {"label": "Fraudes observees", "value": fmt_int(total_frauds), "detail": "Cas confirmes", "tone": "risk"},
+            {"label": "Taux historique", "value": fmt_pct(total_frauds / total_transactions, 3), "detail": "Risque global"},
+            {"label": "F1-score", "value": fmt_pct(fraud_metrics.get("f1", 0), 2), "detail": "Precision / recall", "tone": "good"},
+            {"label": "ROC-AUC", "value": f"{fraud_metrics.get('roc_auc', 0):.4f}", "detail": "Separation modele", "tone": "good"},
+        ]
+    )
 
     left, right = st.columns(2)
     with left:
@@ -293,11 +318,19 @@ def risk_business_text(risk_band: str, probability: float) -> str:
 
 def render_scored_results(scored: pd.DataFrame, threshold: float, delimiter: str, export_name: str) -> None:
     summary = summarize_scoring(scored, threshold=threshold)
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Lignes scorees", fmt_int(summary["rows"]))
-    c2.metric("Alertes fraude", fmt_int(summary["predicted_frauds"]), fmt_pct(summary["predicted_fraud_rate"], 2))
-    c3.metric("Risque moyen", fmt_pct(summary["average_probability"], 2))
-    c4.metric("Critiques", fmt_int(summary["critical_transactions"]))
+    react_kpis(
+        [
+            {"label": "Lignes scorees", "value": fmt_int(summary["rows"]), "detail": "Transactions controlees"},
+            {
+                "label": "Alertes fraude",
+                "value": fmt_int(summary["predicted_frauds"]),
+                "detail": fmt_pct(summary["predicted_fraud_rate"], 2),
+                "tone": "risk",
+            },
+            {"label": "Risque moyen", "value": fmt_pct(summary["average_probability"], 2), "detail": "Probabilite moyenne"},
+            {"label": "Critiques", "value": fmt_int(summary["critical_transactions"]), "detail": "Priorite analyste", "tone": "attention"},
+        ]
+    )
 
     business_note(
         "Lecture business.",
@@ -344,10 +377,13 @@ def render_operational_scoring_page() -> None:
         st.error("Le service de scoring n'est pas pret: le modele fraude est introuvable.")
         return
 
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Service de scoring", "Pret")
-    c2.metric("Controle qualite", "Strict")
-    c3.metric("Sortie metier", "Action")
+    react_kpis(
+        [
+            {"label": "Service de scoring", "value": "Pret", "detail": "Transaction et batch CSV", "tone": "good"},
+            {"label": "Controle qualite", "value": "Strict", "detail": "Schema et types verifies"},
+            {"label": "Sortie metier", "value": "Action", "detail": "Validation, revue ou blocage"},
+        ]
+    )
 
     transaction_tab, csv_tab, schema_tab = st.tabs(["Saisie transaction", "Import CSV", "Format attendu"])
 
@@ -395,10 +431,22 @@ def render_operational_scoring_page() -> None:
             else:
                 scored = score_fraud_dataframe(model, validation.dataframe, threshold=threshold)
                 result = scored.iloc[0]
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Decision", "Alerte" if int(result["predicted_isFraud"]) else "Acceptee")
-                c2.metric("Probabilite fraude", fmt_pct(float(result["fraud_probability"]), 2))
-                c3.metric("Niveau de risque", str(result["risk_band"]))
+                react_kpis(
+                    [
+                        {
+                            "label": "Decision",
+                            "value": "Alerte" if int(result["predicted_isFraud"]) else "Acceptee",
+                            "detail": str(result["recommended_action"]),
+                            "tone": "risk" if int(result["predicted_isFraud"]) else "good",
+                        },
+                        {
+                            "label": "Probabilite fraude",
+                            "value": fmt_pct(float(result["fraud_probability"]), 2),
+                            "detail": "Score modele",
+                        },
+                        {"label": "Niveau de risque", "value": str(result["risk_band"]), "detail": "Priorisation metier"},
+                    ]
+                )
                 business_note("Interpretation.", risk_business_text(str(result["risk_band"]), float(result["fraud_probability"])))
                 st.dataframe(scored, width="stretch", hide_index=True)
 
@@ -432,10 +480,13 @@ def render_operational_scoring_page() -> None:
             for warning in validation.warnings:
                 st.warning(warning)
 
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Fichier accepte", fmt_int(len(validation.dataframe)))
-            c2.metric("Colonnes controlees", fmt_int(len(validation.dataframe.columns)))
-            c3.metric("Pret a scorer", "Oui")
+            react_kpis(
+                [
+                    {"label": "Fichier accepte", "value": fmt_int(len(validation.dataframe)), "detail": "Lignes valides", "tone": "good"},
+                    {"label": "Colonnes controlees", "value": fmt_int(len(validation.dataframe.columns)), "detail": "Schema attendu"},
+                    {"label": "Pret a scorer", "value": "Oui", "detail": uploaded_file.name},
+                ]
+            )
 
             st.subheader("Apercu des donnees validees")
             st.dataframe(validation.dataframe.head(20), width="stretch", hide_index=True)
@@ -474,11 +525,14 @@ def render_customer_page(segments: pd.DataFrame, clustering_metrics: dict, k_sco
         missing_asset("Segments clients indisponibles: fichier data/processed/customer_segments.csv absent du deploiement.")
         return
     profile = segment_labels(customer_profile(segments))
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Clients", fmt_int(len(segments)))
-    c2.metric("Segments", fmt_int(profile["segment"].nunique()))
-    c3.metric("Silhouette", f"{clustering_metrics.get('silhouette', 0):.4f}")
-    c4.metric("Davies-Bouldin", f"{clustering_metrics.get('davies_bouldin', 0):.4f}")
+    react_kpis(
+        [
+            {"label": "Clients", "value": fmt_int(len(segments)), "detail": "Base CRM analysee"},
+            {"label": "Segments", "value": fmt_int(profile["segment"].nunique()), "detail": "Profils actionnables"},
+            {"label": "Silhouette", "value": f"{clustering_metrics.get('silhouette', 0):.4f}", "detail": "Qualite separation", "tone": "good"},
+            {"label": "Davies-Bouldin", "value": f"{clustering_metrics.get('davies_bouldin', 0):.4f}", "detail": "Compacite clusters"},
+        ]
+    )
 
     st.subheader("Profils metiers")
     display = profile.copy()
@@ -530,11 +584,14 @@ def render_mlops_page() -> None:
         "MLOps & exploitation",
         "Vue cible pour passer d'un prototype a un service exploitable.",
     )
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Scoring", "Operationnel")
-    c2.metric("Interface", "Dashboard")
-    c3.metric("Controle", "Schema strict")
-    c4.metric("Deploiement", "Application")
+    react_kpis(
+        [
+            {"label": "Scoring", "value": "Operationnel", "detail": "Transaction et batch CSV", "tone": "good"},
+            {"label": "Interface", "value": "Dashboard", "detail": "Pilotage metier"},
+            {"label": "Controle", "value": "Schema strict", "detail": "Rejet des fichiers non conformes"},
+            {"label": "Deploiement", "value": "Application", "detail": "Streamlit Cloud"},
+        ]
+    )
 
     st.subheader("Chaine industrielle")
     architecture = pd.DataFrame(

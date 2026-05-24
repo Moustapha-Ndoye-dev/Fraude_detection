@@ -147,6 +147,20 @@ Le dashboard contient:
 - une vue segmentation client;
 - une page MLOps et exploitation.
 
+Le design utilise des composants React embarques dans Streamlit pour les headers, les KPI et les blocs de lecture business. Le bundle de production est deja versionne dans:
+
+```text
+dashboard/components/fraud_widgets/dist/fraud-widgets.js
+```
+
+Pour modifier ces composants React:
+
+```bash
+cd dashboard/components/fraud_widgets
+npm install
+npm run build
+```
+
 ## Deploiement Streamlit Cloud
 
 1. Connecter le depot GitHub `Moustapha-Ndoye-dev/Fraude_detection`.
