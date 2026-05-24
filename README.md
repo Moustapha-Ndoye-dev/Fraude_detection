@@ -26,6 +26,7 @@ Projet de Machine Learning pour deux cas d'usage:
 ## Livrables
 
 - Rapport final: `RAPPORT_FINAL.md`
+- Rapport HTML: `reports/rapport_final.html`
 - Dashboard Streamlit: `dashboard/app.py`
 - Presentation finale: `PRESENTATION_ENTREPRISE.md`
 - Depot GitHub deployable: architecture projet, dependances, modeles, donnees utiles, scripts et documentation
@@ -150,11 +151,10 @@ Main file path: dashboard/app.py
 
 Le dashboard contient:
 
-- une synthese executive;
-- une vue risque fraude;
-- un outil de scoring operationnel avec saisie transaction et import CSV;
-- une vue segmentation client;
-- une page MLOps et exploitation.
+- `01 - Synthese dirigeant`;
+- `02 - Analyse du risque fraude`;
+- `03 - Scoring transaction et CSV`;
+- `04 - Segmentation clients`.
 
 Le design utilise des composants React embarques dans Streamlit pour les headers, les KPI et les blocs de lecture business. Le bundle de production est deja versionne dans:
 
@@ -168,6 +168,12 @@ Pour modifier ces composants React:
 cd dashboard/components/fraud_widgets
 npm install
 npm run build
+```
+
+Generer le rapport HTML:
+
+```bash
+python scripts/generate_html_report.py
 ```
 
 ## Deploiement Streamlit Cloud

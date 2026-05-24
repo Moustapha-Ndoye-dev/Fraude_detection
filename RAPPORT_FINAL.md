@@ -81,11 +81,18 @@ dashboard/app.py
 
 Il contient:
 
-- une page `Synthese executive` pour les indicateurs dirigeants;
-- une page `Risque fraude` pour analyser les fraudes par type, periode et montant;
-- une page `Scoring operationnel` pour saisir une transaction ou importer un CSV;
-- une page `Segments clients` pour visualiser les profils clients;
-- une page `MLOps & exploitation` pour presenter l'architecture cible.
+- une page `01 - Synthese dirigeant` pour les indicateurs dirigeants;
+- une page `02 - Analyse du risque fraude` pour analyser les fraudes par type, periode et montant;
+- une page `03 - Scoring transaction et CSV` pour saisir une transaction ou importer un CSV;
+- une page `04 - Segmentation clients` pour visualiser les profils clients.
+
+La partie industrialisation est livree dans le depot sous forme de scripts, API, Dockerfile et documentation, mais elle n'est plus affichee comme page descriptive dans le dashboard metier.
+
+Une version HTML du rapport est disponible dans:
+
+```text
+reports/rapport_final.html
+```
 
 Le dashboard utilise des composants React embarques pour les headers, KPI et lectures business, tout en gardant les formulaires, tableaux et uploads CSV en Streamlit natif pour la stabilite.
 

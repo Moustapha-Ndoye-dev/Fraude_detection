@@ -43,16 +43,13 @@ def fmt_pct(value: float, digits: int = 2) -> str:
     return f"{value * 100:.{digits}f}%"
 
 
-def page_header(title: str, subtitle: str) -> None:
+def page_header(title: str, subtitle: str, insight: str) -> None:
     react_hero(
         title,
         subtitle,
-        chips=["Production", "Scoring CSV", "Lecture business"],
+        chips=["Decision risque", "Scoring CSV", "Segments clients"],
     )
-
-
-def show_metric(label: str, value: str, help_text: str | None = None) -> None:
-    st.metric(label, value, help=help_text)
+    react_insight("Insight metier", insight, tone="success")
 
 
 def business_note(title: str, body: str) -> None:
@@ -181,29 +178,38 @@ def segment_labels(profile: pd.DataFrame) -> pd.DataFrame:
 
 def render_sidebar() -> str:
     st.sidebar.title("Fraud Intelligence")
-    st.sidebar.caption("Pilotage industriel des risques et des segments clients")
+    st.sidebar.caption("Detection de fraude, scoring CSV et segmentation client")
     page = st.sidebar.radio(
-        "Navigation",
+        "Menu principal",
         [
-            "Synthese executive",
-            "Risque fraude",
-            "Scoring operationnel",
-            "Segments clients",
-            "MLOps & exploitation",
+            "01 - Synthese dirigeant",
+            "02 - Analyse du risque fraude",
+            "03 - Scoring transaction et CSV",
+            "04 - Segmentation clients",
         ],
     )
     st.sidebar.divider()
-    st.sidebar.caption("Statut solution")
-    st.sidebar.write(f"Service de scoring: {'OK' if scoring_ready() else 'MODELE MANQUANT'}")
+    st.sidebar.caption("Disponibilite des livrables")
+    st.sidebar.write(f"Moteur de scoring: {'Pret' if scoring_ready() else 'Modele manquant'}")
     for name, ok in artifact_status().items():
-        st.sidebar.write(f"{name}: {'OK' if ok else 'MANQUANT'}")
+        st.sidebar.write(f"{name}: {'Pret' if ok else 'Manquant'}")
+    report_path = PATHS.report_dir / "rapport_final.html"
+    if report_path.exists():
+        st.sidebar.download_button(
+            "Telecharger le rapport HTML",
+            data=report_path.read_bytes(),
+            file_name="rapport_final.html",
+            mime="text/html",
+            width="stretch",
+        )
     return page
 
 
 def render_executive_page(fraud_df: pd.DataFrame, segments: pd.DataFrame, fraud_metrics: dict) -> None:
     page_header(
         "Synthese executive",
-        "Vue de pilotage pour dirigeants, risque, conformite et marketing.",
+        "Vue de pilotage pour dirigeants: performance modele, exposition fraude et valeur client.",
+        "Le risque observe reste rare mais tres sensible: l'enjeu est de prioriser les controles sans bloquer inutilement les transactions normales.",
     )
     if fraud_df.empty:
         missing_asset("Donnees de fraude indisponibles: fichier detection_fraude.csv absent du deploiement.")
@@ -258,6 +264,7 @@ def render_fraud_page(fraud_df: pd.DataFrame, fraud_metrics: dict) -> None:
     page_header(
         "Risque fraude",
         "Analyse operationnelle des transactions, metriques modele et signaux de fraude a prioriser.",
+        "Les transactions TRANSFER et CASH_OUT concentrent le signal de risque. Elles doivent alimenter une file de revue prioritaire avec un seuil ajuste au cout metier.",
     )
     if fraud_df.empty:
         missing_asset("Donnees de fraude indisponibles: fichier detection_fraude.csv absent du deploiement.")
@@ -371,6 +378,7 @@ def render_operational_scoring_page() -> None:
     page_header(
         "Scoring operationnel",
         "Saisissez une transaction ou importez un fichier CSV pour obtenir le risque et l'action recommandee.",
+        "Cette page est l'outil utilisable par une equipe metier: controle du format, scoring en volume, niveau de risque et export des decisions.",
     )
     model = load_fraud_model()
     if model is None:
@@ -520,6 +528,7 @@ def render_customer_page(segments: pd.DataFrame, clustering_metrics: dict, k_sco
     page_header(
         "Segments clients",
         "Profils marketing actionnables pour la fidelisation, la reactivation et les campagnes ciblees.",
+        "Les segments transforment les donnees client en plans d'action: fidelisation premium, reactivation dormants et ciblage promotionnel.",
     )
     if segments.empty:
         missing_asset("Segments clients indisponibles: fichier data/processed/customer_segments.csv absent du deploiement.")
@@ -579,78 +588,25 @@ def render_customer_page(segments: pd.DataFrame, clustering_metrics: dict, k_sco
         )
 
 
-def render_mlops_page() -> None:
-    page_header(
-        "MLOps & exploitation",
-        "Vue cible pour passer d'un prototype a un service exploitable.",
-    )
-    react_kpis(
-        [
-            {"label": "Scoring", "value": "Operationnel", "detail": "Transaction et batch CSV", "tone": "good"},
-            {"label": "Interface", "value": "Dashboard", "detail": "Pilotage metier"},
-            {"label": "Controle", "value": "Schema strict", "detail": "Rejet des fichiers non conformes"},
-            {"label": "Deploiement", "value": "Application", "detail": "Streamlit Cloud"},
-        ]
-    )
-
-    st.subheader("Chaine industrielle")
-    architecture = pd.DataFrame(
-        [
-            ["Ingestion", "CSV, core banking, CRM", "Controle schema, qualite, volumetrie"],
-            ["Feature engineering", "Variables de solde, montant, canal", "Transformation reproductible"],
-            ["Scoring", "Moteur de scoring", "Probabilite, niveau de risque, action"],
-            ["Pilotage", "Dashboard executif", "KPIs, alertes, segments"],
-            ["Monitoring", "Drift, performance, erreurs", "Detection de degradation"],
-            ["Reentrainement", "Pipeline planifie", "Mise a jour controlee du modele"],
-        ],
-        columns=["Couche", "Implementation", "Role"],
-    )
-    st.dataframe(architecture, width="stretch", hide_index=True)
-
-    left, right = st.columns(2)
-    with left:
-        st.subheader("Controles production")
-        for control in [
-            "Fichiers CSV rejetes si colonnes manquantes ou types invalides.",
-            "Journalisation des volumes scores et taux de risque.",
-            "Seuil de fraude configurable selon le cout metier.",
-            "Suivi des faux positifs et faux negatifs apres retour analyste.",
-            "Surveillance de la derive des montants, types et soldes.",
-        ]:
-            st.write(control)
-    with right:
-        st.subheader("Usage metier reel")
-        for usage in [
-            "Fraude critique: blocage temporaire ou revue prioritaire.",
-            "Fraude elevee: file analyste.",
-            "Risque moyen: monitoring renforce.",
-            "Risque faible: validation automatique.",
-            "Segments clients: ciblage CRM et personnalisation marketing.",
-        ]:
-            st.write(usage)
-
-
 page = render_sidebar()
 fraud_metrics = load_json(str(PATHS.report_dir / "fraud_metrics.json"))
 clustering_metrics = load_json(str(PATHS.report_dir / "customer_clustering_metrics.json"))
 
-if page in {"Synthese executive", "Risque fraude"}:
+if page in {"01 - Synthese dirigeant", "02 - Analyse du risque fraude"}:
     fraud_data = load_fraud_data()
 else:
     fraud_data = pd.DataFrame()
 
-if page in {"Synthese executive", "Segments clients"}:
+if page in {"01 - Synthese dirigeant", "04 - Segmentation clients"}:
     customer_segments = load_customer_segments()
 else:
     customer_segments = pd.DataFrame()
 
-if page == "Synthese executive":
+if page == "01 - Synthese dirigeant":
     render_executive_page(fraud_data, customer_segments, fraud_metrics)
-elif page == "Risque fraude":
+elif page == "02 - Analyse du risque fraude":
     render_fraud_page(fraud_data, fraud_metrics)
-elif page == "Scoring operationnel":
+elif page == "03 - Scoring transaction et CSV":
     render_operational_scoring_page()
-elif page == "Segments clients":
+elif page == "04 - Segmentation clients":
     render_customer_page(customer_segments, clustering_metrics, load_k_scores())
-elif page == "MLOps & exploitation":
-    render_mlops_page()

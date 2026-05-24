@@ -42,13 +42,13 @@ python scripts/show_results.py
 python -m streamlit run dashboard/app.py
 ```
 
-3. Montrer la page `Synthese executive`.
+3. Montrer la page `01 - Synthese dirigeant`.
 
-4. Montrer la page `Risque fraude`.
+4. Montrer la page `02 - Analyse du risque fraude`.
 
-5. Montrer la page `Segments clients`.
+5. Montrer la page `04 - Segmentation clients`.
 
-6. Aller dans `Scoring operationnel`.
+6. Aller dans `03 - Scoring transaction et CSV`.
 
 7. Saisir une transaction manuellement et lire la decision, la probabilite et l'action recommandee.
 
@@ -108,6 +108,7 @@ La solution proposee transforme deux jeux de donnees bruts en systeme decisionne
 ## 8. Livrables remis
 
 - Rapport final: `RAPPORT_FINAL.md`
+- Rapport HTML: `reports/rapport_final.html`
 - Dashboard Streamlit: `dashboard/app.py`
 - Presentation entreprise: `PRESENTATION_ENTREPRISE.md`
 - Depot GitHub propre et deployable: `README.md`, `requirements.txt`, `src/`, `scripts/`, `api/`, `dashboard/`, `mlops/`, `models/`, `reports/`
