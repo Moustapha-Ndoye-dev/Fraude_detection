@@ -1,0 +1,24 @@
+project:
+  name: fraud-customer-mlops
+  random_state: 42
+
+paths:
+  fraud_data: detection_fraude.csv
+  customer_data: data_cluster.csv
+  model_dir: models
+  report_dir: reports
+  figure_dir: reports/figures
+  processed_dir: data/processed
+
+fraud:
+  target: isFraud
+  id_columns:
+    - nameOrig
+    - nameDest
+  baseline_models:
+    - logistic_regression
+    - random_forest
+
+clustering:
+  default_k: 4
+  candidate_k: [2, 3, 4, 5, 6, 7, 8]

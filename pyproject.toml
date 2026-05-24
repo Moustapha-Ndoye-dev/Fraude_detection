@@ -1,0 +1,14 @@
+[project]
+name = "fraud-customer-mlops"
+version = "0.1.0"
+description = "Projet ML: detection de fraude, segmentation client et approche MLOps."
+readme = "README.md"
+requires-python = ">=3.10"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
