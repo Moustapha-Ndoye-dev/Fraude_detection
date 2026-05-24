@@ -1,0 +1,1 @@
+step,type,amount,oldbalanceOrg,newbalanceOrig,oldbalanceDest,newbalanceDest,orig_balance_delta,dest_balance_delta,orig_delta_error,dest_delta_error,amount_to_oldbalance_ratio,emptied_origin,dest_is_merchant,dest_is_customer,log_amount,isFraud,fraud_probability,predicted_isFraud

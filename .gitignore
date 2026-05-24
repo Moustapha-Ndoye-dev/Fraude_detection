@@ -33,6 +33,13 @@ reports/figures/*
 !models/fraud_pipeline.joblib
 !models/customer_clustering.joblib
 !reports/customer_k_scores.csv
+!reports/fraud_model_comparison.csv
+!reports/clustering_model_comparison.csv
+!reports/fraud_feature_importance.csv
+!reports/fraud_false_positives_sample.csv
+!reports/fraud_false_negatives_sample.csv
+!reports/fraud_shap_note.json
+!reports/fraud_shap_importance.csv
 !reports/figures/.gitkeep
 .ipynb_checkpoints/
 

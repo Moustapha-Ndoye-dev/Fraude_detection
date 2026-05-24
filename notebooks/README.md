@@ -1,4 +1,4 @@
-# Notebooks recommandes
+# Notebooks fournis
 
 Ordre conseille:
 
@@ -8,4 +8,13 @@ Ordre conseille:
 4. `04_clustering_clients.ipynb` - K-Means, DBSCAN, clustering hierarchique, GMM.
 5. `05_mlops_synthese.ipynb` - architecture, monitoring et demo des artefacts.
 
-Les scripts dans `scripts/` fournissent les memes briques sous forme reproductible.
+Ces notebooks sont volontairement relies aux scripts reproductibles du projet. Les analyses peuvent donc etre relancees depuis les notebooks ou directement depuis le terminal.
+
+Commandes utiles:
+
+```bash
+python scripts/compare_fraud_models.py --nrows 200000
+python scripts/interpret_fraud_model.py
+python scripts/compare_clustering_models.py
+python scripts/generate_html_report.py
+```

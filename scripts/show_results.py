@@ -88,6 +88,24 @@ def print_fraud_results() -> None:
     print("Fraude par type de transaction")
     print(by_type.to_string())
 
+    comparison_path = PATHS.report_dir / "fraud_model_comparison.csv"
+    if comparison_path.exists():
+        print()
+        print("Comparaison des modeles fraude")
+        print(pd.read_csv(comparison_path).to_string(index=False))
+
+    importance_path = PATHS.report_dir / "fraud_feature_importance.csv"
+    if importance_path.exists():
+        print()
+        print("Top variables importantes")
+        print(pd.read_csv(importance_path).head(10).to_string(index=False))
+
+    shap_path = PATHS.report_dir / "fraud_shap_importance.csv"
+    if shap_path.exists():
+        print()
+        print("Top variables SHAP")
+        print(pd.read_csv(shap_path).head(10).to_string(index=False))
+
 
 def label_segments(profiles: pd.DataFrame) -> pd.DataFrame:
     profiles = profiles.copy()
@@ -113,6 +131,12 @@ def print_customer_results() -> None:
         print()
         print("Comparaison des nombres de clusters")
         print(pd.read_csv(k_path).to_string(index=False))
+
+    clustering_comparison_path = PATHS.report_dir / "clustering_model_comparison.csv"
+    if clustering_comparison_path.exists():
+        print()
+        print("Comparaison des algorithmes de clustering")
+        print(pd.read_csv(clustering_comparison_path).to_string(index=False))
 
     segments_path = PATHS.processed_dir / "customer_segments.csv"
     if not segments_path.exists():

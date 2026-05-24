@@ -109,6 +109,8 @@ La solution proposee transforme deux jeux de donnees bruts en systeme decisionne
 
 - Rapport final: `RAPPORT_FINAL.md`
 - Rapport HTML: `reports/rapport_final.html`
+- Checklist de conformite: `CHECKLIST_CONFORMITE.md`
+- Notebooks commentes: `notebooks/`
 - Dashboard Streamlit: `dashboard/app.py`
 - Presentation entreprise: `PRESENTATION_ENTREPRISE.md`
 - Depot GitHub propre et deployable: `README.md`, `requirements.txt`, `src/`, `scripts/`, `api/`, `dashboard/`, `mlops/`, `models/`, `reports/`

@@ -32,6 +32,9 @@ Projet de Machine Learning pour deux cas d'usage:
 - Depot GitHub deployable: architecture projet, dependances, modeles, donnees utiles, scripts et documentation
 - API FastAPI: `api/main.py`
 - Documentation MLOps: `mlops/`
+- Notebooks commentes: `notebooks/`
+- Comparaisons modeles: `reports/fraud_model_comparison.csv` et `reports/clustering_model_comparison.csv`
+- Interpretabilite fraude: `reports/fraud_feature_importance.csv`, echantillons FP/FN et note SHAP
 
 Les fichiers fournis restent lisibles a la racine:
 
@@ -83,10 +86,45 @@ Baseline interpretable:
 python scripts/train_fraud.py --model logistic_regression --nrows 200000
 ```
 
+Comparaison des modeles demandes dans le cahier des charges:
+
+```bash
+python scripts/compare_fraud_models.py --nrows 200000
+```
+
+Le script compare:
+
+- Regression Logistique;
+- Random Forest;
+- XGBoost;
+- LightGBM;
+- reseau de neurones.
+
+Pour XGBoost et LightGBM:
+
+```bash
+python -m pip install -r requirements-optional.txt
+```
+
 Sorties:
 
 - `models/fraud_pipeline.joblib`
 - `reports/fraud_metrics.json`
+- `reports/fraud_model_comparison.csv`
+
+Interpretabilite, importance des variables et analyse FP/FN:
+
+```bash
+python scripts/interpret_fraud_model.py
+```
+
+Sorties:
+
+- `reports/fraud_feature_importance.csv`
+- `reports/fraud_shap_importance.csv`
+- `reports/fraud_false_positives_sample.csv`
+- `reports/fraud_false_negatives_sample.csv`
+- `reports/fraud_shap_note.json`
 
 ## Segmentation client
 
@@ -102,11 +140,18 @@ Entrainement K-Means:
 python scripts/train_customer_clustering.py --model kmeans --clusters 4
 ```
 
+Comparaison des algorithmes demandes:
+
+```bash
+python scripts/compare_clustering_models.py
+```
+
 Sorties:
 
 - `models/customer_clustering.joblib`
 - `data/processed/customer_segments.csv`
 - `reports/customer_clustering_metrics.json`
+- `reports/clustering_model_comparison.csv`
 
 ## API
 

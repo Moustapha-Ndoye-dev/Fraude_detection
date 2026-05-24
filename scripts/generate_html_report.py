@@ -47,6 +47,8 @@ def segment_row(profile: pd.DataFrame, label: str) -> pd.Series:
 def build_report() -> str:
     fraud_metrics = load_json(ROOT / "reports" / "fraud_metrics.json")
     cluster_metrics = load_json(ROOT / "reports" / "customer_clustering_metrics.json")
+    fraud_comparison = pd.read_csv(ROOT / "reports" / "fraud_model_comparison.csv")
+    clustering_comparison = pd.read_csv(ROOT / "reports" / "clustering_model_comparison.csv")
 
     fraud_df = pd.read_csv(ROOT / "detection_fraude.csv", sep=";", usecols=["type", "amount", "isFraud"])
     fraud_count = int(fraud_df["isFraud"].sum())
@@ -110,6 +112,28 @@ def build_report() -> str:
             fmt_pct(row.reponse_campagne, 1),
         ]
         for row in customer_summary.itertuples(index=False)
+    ]
+    fraud_model_rows = [
+        [
+            str(row.model),
+            str(row.status),
+            "" if pd.isna(row.accuracy) else fmt_pct(row.accuracy, 4),
+            "" if pd.isna(row.precision) else fmt_pct(row.precision, 2),
+            "" if pd.isna(row.recall) else fmt_pct(row.recall, 2),
+            "" if pd.isna(row.f1) else fmt_pct(row.f1, 2),
+            "" if pd.isna(row.roc_auc) else f"{row.roc_auc:.4f}",
+        ]
+        for row in fraud_comparison.itertuples(index=False)
+    ]
+    clustering_rows = [
+        [
+            str(row.model),
+            str(row.clusters_found),
+            str(row.noise_points),
+            "" if pd.isna(row.silhouette) else f"{row.silhouette:.4f}",
+            "" if pd.isna(row.davies_bouldin) else f"{row.davies_bouldin:.4f}",
+        ]
+        for row in clustering_comparison.itertuples(index=False)
     ]
 
     generated_at = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -268,6 +292,28 @@ def build_report() -> str:
           </tbody>
         </table>
       </article>
+    </section>
+
+    <section class="card">
+      <h2>Comparaison des modeles fraude</h2>
+      <table>
+        <thead><tr><th>Modele</th><th>Statut</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1</th><th>ROC-AUC</th></tr></thead>
+        <tbody>{table_rows(fraud_model_rows)}</tbody>
+      </table>
+      <div class="decision">
+        <strong>Decision.</strong> Random Forest, XGBoost et LightGBM donnent le meilleur compromis sur l'echantillon de comparaison. Le Random Forest est conserve pour la demo car il est robuste, interpretable par importance de variables et deja sauvegarde dans les artefacts de production.
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Comparaison des algorithmes de clustering</h2>
+      <table>
+        <thead><tr><th>Modele</th><th>Clusters trouves</th><th>Bruit</th><th>Silhouette</th><th>Davies-Bouldin</th></tr></thead>
+        <tbody>{table_rows(clustering_rows)}</tbody>
+      </table>
+      <div class="decision">
+        <strong>Decision.</strong> Gaussian Mixture obtient une bonne silhouette, mais K-Means a ete retenu pour la lisibilite, la stabilite et la facilite d'explication des segments metiers dans un contexte entreprise.
+      </div>
     </section>
 
     <section class="card">

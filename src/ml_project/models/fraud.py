@@ -6,6 +6,7 @@ import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -48,6 +49,46 @@ def build_fraud_pipeline(X: pd.DataFrame, model_name: str = "random_forest") -> 
             class_weight="balanced_subsample",
             random_state=RANDOM_STATE,
             n_jobs=-1,
+        )
+    elif model_name == "neural_network":
+        estimator = MLPClassifier(
+            hidden_layer_sizes=(64, 32),
+            activation="relu",
+            learning_rate_init=0.001,
+            max_iter=80,
+            random_state=RANDOM_STATE,
+            early_stopping=True,
+        )
+    elif model_name == "xgboost":
+        try:
+            from xgboost import XGBClassifier
+        except ImportError as exc:
+            raise ImportError("Installer xgboost pour entrainer ce modele: pip install xgboost") from exc
+        estimator = XGBClassifier(
+            n_estimators=180,
+            max_depth=5,
+            learning_rate=0.08,
+            subsample=0.9,
+            colsample_bytree=0.9,
+            objective="binary:logistic",
+            eval_metric="logloss",
+            tree_method="hist",
+            random_state=RANDOM_STATE,
+            n_jobs=-1,
+        )
+    elif model_name == "lightgbm":
+        try:
+            from lightgbm import LGBMClassifier
+        except ImportError as exc:
+            raise ImportError("Installer lightgbm pour entrainer ce modele: pip install lightgbm") from exc
+        estimator = LGBMClassifier(
+            n_estimators=180,
+            learning_rate=0.08,
+            num_leaves=31,
+            class_weight="balanced",
+            random_state=RANDOM_STATE,
+            n_jobs=-1,
+            verbosity=-1,
         )
     else:
         raise ValueError(f"Modele non supporte: {model_name}")

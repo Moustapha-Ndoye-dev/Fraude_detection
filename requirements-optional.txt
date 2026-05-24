@@ -1,0 +1,4 @@
+# Dependances optionnelles pour tester tous les modeles demandes dans le cahier des charges.
+# Non incluses dans requirements.txt pour garder le deploiement Streamlit Cloud leger et stable.
+xgboost>=2.0
+lightgbm>=4.0

@@ -17,7 +17,11 @@ from ml_project.models.fraud import train_fraud_model
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Entrainer un modele de detection de fraude.")
-    parser.add_argument("--model", default="random_forest", choices=["random_forest", "logistic_regression"])
+    parser.add_argument(
+        "--model",
+        default="random_forest",
+        choices=["logistic_regression", "random_forest", "xgboost", "lightgbm", "neural_network"],
+    )
     parser.add_argument("--nrows", type=int, default=None, help="Limiter le nombre de lignes pour un test rapide.")
     parser.add_argument("--test-size", type=float, default=0.2)
     return parser.parse_args()

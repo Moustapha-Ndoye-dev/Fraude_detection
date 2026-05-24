@@ -156,6 +156,35 @@
     </section>
 
     <section class="card">
+      <h2>Comparaison des modeles fraude</h2>
+      <table>
+        <thead><tr><th>Modele</th><th>Statut</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1</th><th>ROC-AUC</th></tr></thead>
+        <tbody><tr><td>logistic_regression</td><td>ok</td><td>97.1950%</td><td>2.52%</td><td>100.00%</td><td>4.92%</td><td>0.9989</td></tr>
+<tr><td>random_forest</td><td>ok</td><td>99.9975%</td><td>100.00%</td><td>96.55%</td><td>98.25%</td><td>1.0000</td></tr>
+<tr><td>xgboost</td><td>ok</td><td>99.9975%</td><td>100.00%</td><td>96.55%</td><td>98.25%</td><td>1.0000</td></tr>
+<tr><td>lightgbm</td><td>ok</td><td>99.9975%</td><td>100.00%</td><td>96.55%</td><td>98.25%</td><td>1.0000</td></tr>
+<tr><td>neural_network</td><td>ok</td><td>99.9400%</td><td>100.00%</td><td>17.24%</td><td>29.41%</td><td>0.9990</td></tr></tbody>
+      </table>
+      <div class="decision">
+        <strong>Decision.</strong> Random Forest, XGBoost et LightGBM donnent le meilleur compromis sur l'echantillon de comparaison. Le Random Forest est conserve pour la demo car il est robuste, interpretable par importance de variables et deja sauvegarde dans les artefacts de production.
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Comparaison des algorithmes de clustering</h2>
+      <table>
+        <thead><tr><th>Modele</th><th>Clusters trouves</th><th>Bruit</th><th>Silhouette</th><th>Davies-Bouldin</th></tr></thead>
+        <tbody><tr><td>kmeans</td><td>4</td><td>0</td><td>0.1764</td><td>2.0898</td></tr>
+<tr><td>dbscan</td><td>6</td><td>2117</td><td>-0.2026</td><td>1.9044</td></tr>
+<tr><td>agglomerative</td><td>4</td><td>0</td><td>0.1447</td><td>2.3439</td></tr>
+<tr><td>gaussian_mixture</td><td>4</td><td>0</td><td>0.2315</td><td>2.1541</td></tr></tbody>
+      </table>
+      <div class="decision">
+        <strong>Decision.</strong> Gaussian Mixture obtient une bonne silhouette, mais K-Means a ete retenu pour la lisibilite, la stabilite et la facilite d'explication des segments metiers dans un contexte entreprise.
+      </div>
+    </section>
+
+    <section class="card">
       <h2>Risque par type de transaction</h2>
       <table>
         <thead><tr><th>Type</th><th>Transactions</th><th>Fraudes</th><th>Taux fraude</th><th>Montant median</th></tr></thead>
@@ -206,7 +235,7 @@
       </article>
     </section>
 
-    <footer>Rapport genere le 24/05/2026 18:03 - Fraud Intelligence</footer>
+    <footer>Rapport genere le 24/05/2026 18:25 - Fraud Intelligence</footer>
   </main>
 </body>
 </html>

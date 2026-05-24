@@ -27,6 +27,14 @@ Statistiques principales:
 
 Le modele de detection de fraude est entraine sous forme de pipeline reproductible. Il integre la preparation des variables, l'encodage des categories et le classifieur.
 
+Les modeles demandes dans le cahier des charges sont compares dans `reports/fraud_model_comparison.csv`:
+
+- Regression Logistique;
+- Random Forest;
+- XGBoost;
+- LightGBM;
+- reseau de neurones.
+
 Resultats du modele:
 
 | Metrique | Valeur |
@@ -54,9 +62,24 @@ Decision recommandee:
 - creer une priorisation par montant pour les tres grosses alertes;
 - analyser les faux negatifs pour reduire les fraudes non detectees.
 
+Interpretabilite:
+
+- importance des variables: `reports/fraud_feature_importance.csv`;
+- SHAP global sur echantillon: `reports/fraud_shap_importance.csv`;
+- faux positifs: `reports/fraud_false_positives_sample.csv`;
+- faux negatifs: `reports/fraud_false_negatives_sample.csv`;
+- note SHAP: `reports/fraud_shap_note.json`.
+
 ## 4. Segmentation client
 
 La segmentation client repose sur un clustering non supervise. Les variables client sont preparees, normalisees et exploitees pour obtenir des groupes actionnables.
+
+Les algorithmes demandes sont compares dans `reports/clustering_model_comparison.csv`:
+
+- K-Means;
+- DBSCAN;
+- Agglomerative Clustering;
+- Gaussian Mixture Models.
 
 Resultats:
 
