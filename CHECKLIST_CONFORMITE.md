@@ -1,5 +1,9 @@
 # Checklist de conformite au cahier des charges
 
+Reference officielle: `projet_machine_learning_m2CDSD.docx` (Exercice 1, Exercice 2, MLOps, livrables).
+
+Statut global: **conforme** — tous les points du cahier des charges sont couverts par le depot.
+
 ## Exercice 1 - Detection de fraude bancaire
 
 | Exigence | Statut | Livrable |
@@ -22,7 +26,7 @@
 | Exigence | Statut | Livrable |
 | --- | --- | --- |
 | Analyse exploratoire clients, revenus, achats | Fait | `notebooks/03_eda_segmentation.ipynb` |
-| Pretraitement: encodage, normalisation, valeurs manquantes | Fait | `src/ml_project/features/customers.py`, `src/ml_project/models/clustering.py` |
+| Pretraitement: encodage, normalisation, valeurs manquantes, PCA eventuelle | Fait | `src/ml_project/features/customers.py`, `src/ml_project/models/clustering.py` (PCA non retenue, normalisation suffisante) |
 | K-Means | Fait | `scripts/train_customer_clustering.py`, `models/customer_clustering.joblib` |
 | DBSCAN | Fait | `scripts/compare_clustering_models.py` |
 | Agglomerative Clustering | Fait | `scripts/compare_clustering_models.py` |
@@ -40,8 +44,8 @@
 | Pipeline donnees | Fait | `src/ml_project/data/`, `src/ml_project/features/` |
 | Validation schema | Fait | `src/ml_project/data/loaders.py`, `src/ml_project/serving/fraud_scoring.py` |
 | Versioning donnees/modeles/parametres | Fait | GitHub, `models/`, `reports/`, `config/settings.yaml` |
-| Deploiement FastAPI | Fait | `api/main.py` |
-| Deploiement Streamlit | Fait | `dashboard/app.py` |
+| Deploiement FastAPI | Fait | `api/main.py` (FastAPI retenu plutot que Flask) |
+| Deploiement Streamlit | Fait | `dashboard/app.py` (Streamlit retenu plutot que Dash) |
 | Docker | Fait | `Dockerfile`, `docker-compose.yml` |
 | Monitoring et drift | Documente | `mlops/architecture.md`, `notebooks/05_mlops_synthese.ipynb` |
 | CI/CD simplifie | Documente | `mlops/architecture.md`, `README.md` |

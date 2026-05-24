@@ -36,11 +36,11 @@ Projet de Machine Learning pour deux cas d'usage:
 - Comparaisons modeles: `reports/fraud_model_comparison.csv` et `reports/clustering_model_comparison.csv`
 - Interpretabilite fraude: `reports/fraud_feature_importance.csv`, echantillons FP/FN et note SHAP
 
-Les fichiers fournis restent lisibles a la racine:
+Les fichiers fournis par le cahier des charges restent lisibles a la racine:
 
 - `detection_fraude.csv`
 - `data_cluster.csv`
-- `projet_machine_learning_m2CDSD.docx`
+- `projet_machine_learning_m2CDSD.docx` (cahier des charges de reference)
 
 Les artefacts necessaires au deploiement Streamlit Cloud sont versionnes:
 

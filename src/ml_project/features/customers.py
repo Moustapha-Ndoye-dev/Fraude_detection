@@ -38,3 +38,35 @@ def add_customer_features(df: pd.DataFrame, reference_year: int = 2026) -> pd.Da
 def customer_model_frame(df: pd.DataFrame) -> pd.DataFrame:
     featured = add_customer_features(df)
     return featured.drop(columns=["ID", "Dt_Customer"], errors="ignore")
+
+
+def customer_segment_profile(segments: pd.DataFrame) -> pd.DataFrame:
+    return (
+        segments.groupby("segment")
+        .agg(
+            clients=("ID", "size"),
+            revenu_median=("Income", "median"),
+            depense_moyenne=("Total_Spend", "mean"),
+            achats_moyens=("Total_Purchases", "mean"),
+            achats_web_moyens=("NumWebPurchases", "mean"),
+            achats_promo_moyens=("NumDealsPurchases", "mean"),
+            recence_moyenne=("Recency", "mean"),
+            reponse_campagne=("Response", "mean"),
+        )
+        .reset_index()
+        .sort_values("segment")
+    )
+
+
+def label_customer_segments(profile: pd.DataFrame) -> pd.DataFrame:
+    labeled = profile.copy()
+    labeled["label_metier"] = "Clients economes"
+    labeled.loc[labeled["depense_moyenne"].idxmax(), "label_metier"] = "Clients premium"
+    labeled.loc[labeled["recence_moyenne"].idxmax(), "label_metier"] = "Clients dormants"
+    web_promo_score = labeled["achats_web_moyens"].rank() + labeled["achats_promo_moyens"].rank()
+    labeled.loc[web_promo_score.idxmax(), "label_metier"] = "Digitaux et promotions"
+    return labeled
+
+
+def segment_by_label(profile: pd.DataFrame, label: str) -> pd.Series:
+    return profile.loc[profile["label_metier"] == label].iloc[0]

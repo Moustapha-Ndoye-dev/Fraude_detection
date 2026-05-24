@@ -1,13 +1,20 @@
 from __future__ import annotations
 
 import json
+import sys
 from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
 
-
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from ml_project.features.customers import (
+    customer_segment_profile,
+    label_customer_segments,
+    segment_by_label,
+)
 REPORT_PATH = ROOT / "reports" / "rapport_final.html"
 
 
@@ -30,20 +37,6 @@ def table_rows(rows: list[list[str]]) -> str:
     )
 
 
-def segment_label_table(profile: pd.DataFrame) -> pd.DataFrame:
-    profile = profile.copy()
-    profile["label_metier"] = "Clients economes"
-    profile.loc[profile["depense_moyenne"].idxmax(), "label_metier"] = "Clients premium"
-    profile.loc[profile["recence_moyenne"].idxmax(), "label_metier"] = "Clients dormants"
-    web_promo_score = profile["achats_web_moyens"].rank() + profile["achats_promo_moyens"].rank()
-    profile.loc[web_promo_score.idxmax(), "label_metier"] = "Digitaux et promotions"
-    return profile
-
-
-def segment_row(profile: pd.DataFrame, label: str) -> pd.Series:
-    return profile.loc[profile["label_metier"] == label].iloc[0]
-
-
 def build_report() -> str:
     fraud_metrics = load_json(ROOT / "reports" / "fraud_metrics.json")
     cluster_metrics = load_json(ROOT / "reports" / "customer_clustering_metrics.json")
@@ -62,21 +55,7 @@ def build_report() -> str:
     )
 
     segments = pd.read_csv(ROOT / "data" / "processed" / "customer_segments.csv")
-    customer_summary = (
-        segments.groupby("segment")
-        .agg(
-            clients=("ID", "size"),
-            revenu_median=("Income", "median"),
-            depense_moyenne=("Total_Spend", "mean"),
-            achats_web_moyens=("NumWebPurchases", "mean"),
-            achats_promo_moyens=("NumDealsPurchases", "mean"),
-            recence_moyenne=("Recency", "mean"),
-            reponse_campagne=("Response", "mean"),
-        )
-        .reset_index()
-        .sort_values("segment")
-    )
-    customer_summary = segment_label_table(customer_summary)
+    customer_summary = label_customer_segments(customer_segment_profile(segments))
 
     top_rate = type_summary.iloc[0]
     second_rate = type_summary.iloc[1]
@@ -85,10 +64,10 @@ def build_report() -> str:
     fraud_only = fraud_df[fraud_df["isFraud"] == 1]
     p95_amount = fraud_only["amount"].quantile(0.95)
     top25_share = fraud_only.sort_values("amount", ascending=False).head(25)["amount"].sum() / fraud_only["amount"].sum()
-    premium = segment_row(customer_summary, "Clients premium")
-    dormant = segment_row(customer_summary, "Clients dormants")
-    digital = segment_row(customer_summary, "Digitaux et promotions")
-    low_value = segment_row(customer_summary, "Clients economes")
+    premium = segment_by_label(customer_summary, "Clients premium")
+    dormant = segment_by_label(customer_summary, "Clients dormants")
+    digital = segment_by_label(customer_summary, "Digitaux et promotions")
+    low_value = segment_by_label(customer_summary, "Clients economes")
     global_spend = segments["Total_Spend"].mean()
     global_response = segments["Response"].mean()
 

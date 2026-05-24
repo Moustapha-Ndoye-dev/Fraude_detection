@@ -48,3 +48,4 @@ reports/figures/*
 Thumbs.db
 .vscode/
 .idea/
+.cursor/

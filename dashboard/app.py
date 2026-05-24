@@ -13,6 +13,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from ml_project.config import PATHS
+from ml_project.features.customers import (
+    customer_segment_profile,
+    label_customer_segments,
+    segment_by_label,
+)
 from ml_project.serving.fraud_scoring import (
     expected_fraud_schema,
     score_fraud_dataframe,
@@ -148,38 +153,6 @@ def fraud_step_summary(fraud_df: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def customer_profile(segments: pd.DataFrame) -> pd.DataFrame:
-    return (
-        segments.groupby("segment")
-        .agg(
-            clients=("ID", "size"),
-            revenu_median=("Income", "median"),
-            depense_moyenne=("Total_Spend", "mean"),
-            achats_moyens=("Total_Purchases", "mean"),
-            achats_web_moyens=("NumWebPurchases", "mean"),
-            achats_promo_moyens=("NumDealsPurchases", "mean"),
-            recence_moyenne=("Recency", "mean"),
-            reponse_campagne=("Response", "mean"),
-        )
-        .reset_index()
-        .sort_values("segment")
-    )
-
-
-def segment_labels(profile: pd.DataFrame) -> pd.DataFrame:
-    profile = profile.copy()
-    profile["label_metier"] = "Clients economes"
-    profile.loc[profile["depense_moyenne"].idxmax(), "label_metier"] = "Clients premium"
-    profile.loc[profile["recence_moyenne"].idxmax(), "label_metier"] = "Clients dormants"
-    web_promo_score = profile["achats_web_moyens"].rank() + profile["achats_promo_moyens"].rank()
-    profile.loc[web_promo_score.idxmax(), "label_metier"] = "Digitaux et promotions"
-    return profile
-
-
-def _segment_row(profile: pd.DataFrame, label: str) -> pd.Series:
-    return profile.loc[profile["label_metier"] == label].iloc[0]
-
-
 def fraud_executive_insight(fraud_df: pd.DataFrame, fraud_metrics: dict) -> str:
     total_transactions = len(fraud_df)
     total_frauds = int(fraud_df["isFraud"].sum())
@@ -203,8 +176,8 @@ def fraud_executive_insight(fraud_df: pd.DataFrame, fraud_metrics: dict) -> str:
 def executive_business_insight(fraud_df: pd.DataFrame, segments: pd.DataFrame, fraud_metrics: dict) -> str:
     total_frauds = int(fraud_df["isFraud"].sum())
     summary = fraud_type_summary(fraud_df)
-    profile = segment_labels(customer_profile(segments))
-    premium = _segment_row(profile, "Clients premium")
+    profile = label_customer_segments(customer_segment_profile(segments))
+    premium = segment_by_label(profile, "Clients premium")
     premium_share = premium["clients"] / len(segments)
     precision = fraud_metrics.get("precision", 0)
     top_fraud_type = summary.iloc[0]
@@ -284,8 +257,8 @@ def risk_distribution_insight(risk_counts: pd.DataFrame) -> str:
 
 
 def customer_executive_insight(profile: pd.DataFrame, segments: pd.DataFrame) -> str:
-    premium = _segment_row(profile, "Clients premium")
-    dormant = _segment_row(profile, "Clients dormants")
+    premium = segment_by_label(profile, "Clients premium")
+    dormant = segment_by_label(profile, "Clients dormants")
     global_spend = segments["Total_Spend"].mean()
     global_response = segments["Response"].mean()
     return (
@@ -298,10 +271,10 @@ def customer_executive_insight(profile: pd.DataFrame, segments: pd.DataFrame) ->
 
 
 def customer_profile_business_insight(profile: pd.DataFrame, segments: pd.DataFrame) -> str:
-    premium = _segment_row(profile, "Clients premium")
-    dormant = _segment_row(profile, "Clients dormants")
-    digital = _segment_row(profile, "Digitaux et promotions")
-    low_value = _segment_row(profile, "Clients economes")
+    premium = segment_by_label(profile, "Clients premium")
+    dormant = segment_by_label(profile, "Clients dormants")
+    digital = segment_by_label(profile, "Digitaux et promotions")
+    low_value = segment_by_label(profile, "Clients economes")
     return (
         f"Plan d'action: 1) Premium: {fmt_int(premium['clients'])} clients, reponse {fmt_pct(premium['reponse_campagne'], 1)}; "
         "programme fidelite et service prioritaire. 2) Dormants: "
@@ -316,8 +289,8 @@ def customer_profile_business_insight(profile: pd.DataFrame, segments: pd.DataFr
 def spend_business_insight(profile: pd.DataFrame) -> str:
     value = profile.assign(valeur_segment=profile["clients"] * profile["depense_moyenne"])
     top_value = value.sort_values("valeur_segment", ascending=False).iloc[0]
-    premium = _segment_row(profile, "Clients premium")
-    low_value = _segment_row(profile, "Clients economes")
+    premium = segment_by_label(profile, "Clients premium")
+    low_value = segment_by_label(profile, "Clients economes")
     return (
         f"Le plus gros potentiel de chiffre d'affaires vient du segment {int(top_value['segment'])} ({top_value['label_metier']}): "
         f"{fmt_pct(top_value['valeur_segment'] / value['valeur_segment'].sum(), 1)} de la depense totale estimee. "
@@ -387,7 +360,7 @@ def render_executive_page(fraud_df: pd.DataFrame, segments: pd.DataFrame, fraud_
         return
     total_transactions = len(fraud_df)
     total_frauds = int(fraud_df["isFraud"].sum())
-    profile = segment_labels(customer_profile(segments))
+    profile = label_customer_segments(customer_segment_profile(segments))
     page_header(
         "Synthese executive",
         "Vue de pilotage pour dirigeants: performance modele, exposition fraude et valeur client.",
@@ -703,7 +676,7 @@ def render_customer_page(segments: pd.DataFrame, clustering_metrics: dict, k_sco
     if segments.empty:
         missing_asset("Segments clients indisponibles: fichier data/processed/customer_segments.csv absent du deploiement.")
         return
-    profile = segment_labels(customer_profile(segments))
+    profile = label_customer_segments(customer_segment_profile(segments))
     page_header(
         "Segments clients",
         "Profils marketing actionnables pour la fidelisation, la reactivation et les campagnes ciblees.",

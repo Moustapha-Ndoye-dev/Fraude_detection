@@ -10,23 +10,21 @@ Ce projet met en place une solution complete de valorisation des donnees pour un
 - service de scoring;
 - premiere architecture MLOps pour industrialiser le systeme.
 
+Les chiffres detailles et l'interpretation metier sont dans `RAPPORT_FINAL.md` et `reports/rapport_final.html`.
+
 ## 2. Resultats principaux
 
-Detection de fraude:
+Pour afficher les metriques a jour dans le terminal:
 
-- transactions analysees: 1 048 575;
-- fraudes observees: 1 142;
-- taux de fraude: 0,109%;
-- precision modele: 1,000;
-- recall modele: 0,978;
-- F1-score: 0,989;
-- ROC-AUC: 0,998.
+```bash
+python scripts/show_results.py
+```
 
-Segmentation client:
+Points cles a retenir:
 
-- clients segmentes: 2 240;
-- nombre de segments retenu: 4;
-- profils metiers: clients premium, clients dormants, clients digitaux/promotions, clients economes.
+- fraude: recall eleve (97,8%) avec precision a 100% sur le modele retenu;
+- segmentation: 4 profils metiers actionnables (premium, dormants, digitaux/promotions, economes);
+- industrialisation: API FastAPI, dashboard Streamlit, Docker, scripts reproductibles.
 
 ## 3. Demonstration conseillee
 
@@ -64,7 +62,7 @@ Pour la fraude:
 - le service retourne une probabilite de fraude;
 - les transactions a fort risque sont bloquees ou envoyees en revue analyste;
 - les analystes confirment ou rejettent les alertes;
-- ces retours servent a reentrainer le modele.
+- ces retours servent a reentrainer le modele;
 - les fichiers CSV de gros volume peuvent etre importes, valides, scores, puis renvoyes avec un niveau de risque et une action recommandee.
 
 Pour le marketing:
@@ -77,6 +75,8 @@ Pour le marketing:
 - les performances des campagnes sont suivies par segment.
 
 ## 5. Architecture cible
+
+Voir `mlops/architecture.md` pour le detail. Flux resume:
 
 ```text
 Sources donnees
@@ -107,11 +107,11 @@ La solution proposee transforme deux jeux de donnees bruts en systeme decisionne
 
 ## 8. Livrables remis
 
+Conformite detaillee: `CHECKLIST_CONFORMITE.md` (reference: `projet_machine_learning_m2CDSD.docx`).
+
 - Rapport final: `RAPPORT_FINAL.md`
 - Rapport HTML: `reports/rapport_final.html`
-- Checklist de conformite: `CHECKLIST_CONFORMITE.md`
 - Notebooks commentes: `notebooks/`
 - Dashboard Streamlit: `dashboard/app.py`
-- Presentation entreprise: `PRESENTATION_ENTREPRISE.md`
 - Depot GitHub propre et deployable: `README.md`, `requirements.txt`, `src/`, `scripts/`, `api/`, `dashboard/`, `mlops/`, `models/`, `reports/`
 - Main file path Streamlit Cloud: `dashboard/app.py`

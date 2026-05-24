@@ -10,6 +10,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from ml_project.config import PATHS
+from ml_project.features.customers import customer_segment_profile, label_customer_segments
 
 
 LINE = "=" * 92
@@ -107,16 +108,6 @@ def print_fraud_results() -> None:
         print(pd.read_csv(shap_path).head(10).to_string(index=False))
 
 
-def label_segments(profiles: pd.DataFrame) -> pd.DataFrame:
-    profiles = profiles.copy()
-    profiles["label_metier"] = "Clients economes"
-    profiles.loc[profiles["depense_moyenne"].idxmax(), "label_metier"] = "Clients premium"
-    profiles.loc[profiles["recence_moyenne"].idxmax(), "label_metier"] = "Clients dormants"
-    web_promo_score = profiles["achats_web_moyens"].rank() + profiles["achats_promo_moyens"].rank()
-    profiles.loc[web_promo_score.idxmax(), "label_metier"] = "Digitaux et promotions"
-    return profiles
-
-
 def print_customer_results() -> None:
     section("Segmentation client - resultats clustering")
     metrics = load_json(PATHS.report_dir / "customer_clustering_metrics.json")
@@ -143,21 +134,7 @@ def print_customer_results() -> None:
         return
 
     segments = pd.read_csv(segments_path)
-    profiles = (
-        segments.groupby("segment")
-        .agg(
-            clients=("ID", "size"),
-            revenu_median=("Income", "median"),
-            depense_moyenne=("Total_Spend", "mean"),
-            achats_moyens=("Total_Purchases", "mean"),
-            achats_web_moyens=("NumWebPurchases", "mean"),
-            achats_promo_moyens=("NumDealsPurchases", "mean"),
-            recence_moyenne=("Recency", "mean"),
-            reponse_campagne=("Response", "mean"),
-        )
-        .sort_index()
-    )
-    profiles = label_segments(profiles)
+    profiles = label_customer_segments(customer_segment_profile(segments))
     display = profiles.copy()
     for column in ["revenu_median", "depense_moyenne"]:
         display[column] = display[column].map(money)
