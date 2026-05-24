@@ -24,6 +24,12 @@ from ml_project.serving.fraud_scoring import (
 
 
 CHART_COLORS = ["#0F766E", "#1D4ED8", "#B45309", "#BE123C", "#6D28D9", "#047857"]
+STREAMLIT_DEPLOY_URL = (
+    "https://share.streamlit.io/deploy?"
+    "repository=https://github.com/Moustapha-Ndoye-dev/Fraude_detection"
+    "&branch=main"
+    "&mainModule=dashboard/app.py"
+)
 
 
 st.set_page_config(
@@ -492,6 +498,8 @@ def render_sidebar() -> tuple[str, str]:
             "MLOps & exploitation",
         ],
     )
+    st.sidebar.divider()
+    st.sidebar.link_button("Déployer sur Streamlit", STREAMLIT_DEPLOY_URL, width="stretch")
     st.sidebar.divider()
     st.sidebar.caption("Statut solution")
     st.sidebar.write(f"Service de scoring: {'OK' if scoring_ready() else 'MODELE MANQUANT'}")
