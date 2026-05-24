@@ -126,6 +126,12 @@ python scripts/score_fraud_csv.py transactions_a_scorer.csv --output data/proces
 streamlit run dashboard/app.py
 ```
 
+Sur Streamlit Community Cloud, utiliser:
+
+```text
+Main file path: streamlit_app.py
+```
+
 Le dashboard contient:
 
 - une synthese executive;
