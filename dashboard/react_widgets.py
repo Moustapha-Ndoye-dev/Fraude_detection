@@ -52,17 +52,19 @@ CSS = """
 
 .fw-hero h1 {
   color: var(--st-text-color);
-  font-size: clamp(1.5rem, 2.2vw, 2.15rem);
-  line-height: 1.15;
-  margin: 6px 0 8px;
+  font-size: clamp(1.65rem, 2.6vw, 2.35rem);
+  font-weight: 820;
+  line-height: 1.12;
+  margin: 6px 0 10px;
 }
 
 .fw-hero p,
 .fw-insight p {
   color: color-mix(in srgb, var(--st-text-color) 82%, transparent);
-  font-size: 1rem;
-  line-height: 1.5;
+  font-size: 1.02rem;
+  line-height: 1.65;
   margin: 0;
+  max-width: 72ch;
 }
 
 .fw-chip-row {

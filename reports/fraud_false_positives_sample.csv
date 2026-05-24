@@ -1,1 +1,2 @@
 step,type,amount,oldbalanceOrg,newbalanceOrig,oldbalanceDest,newbalanceDest,orig_balance_delta,dest_balance_delta,orig_delta_error,dest_delta_error,amount_to_oldbalance_ratio,emptied_origin,dest_is_merchant,dest_is_customer,log_amount,isFraud,fraud_probability,predicted_isFraud
+10,TRANSFER,2172878.97,0.0,0.0,1102892.58,3016316.34,0.0,1913423.7599999998,-2172878.97,-259455.21000000043,2172878.97,0,0,1,14.591564020713408,0,0.6265280515577135,1

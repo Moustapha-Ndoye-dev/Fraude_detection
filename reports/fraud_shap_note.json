@@ -1,8 +1,6 @@
 {
-  "status": "ok",
-  "false_positives": 0,
-  "false_negatives": 5,
-  "sample_size": 200,
-  "output": "C:\\ML\\reports\\fraud_shap_importance.csv",
-  "message": "SHAP TreeExplainer execute sur un echantillon du modele RandomForest."
+  "status": "skipped",
+  "false_positives": 1,
+  "false_negatives": 0,
+  "message": "Le modele courant n'est pas un modele arbre compatible TreeExplainer."
 }

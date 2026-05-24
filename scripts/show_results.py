@@ -11,6 +11,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from ml_project.config import PATHS
 from ml_project.features.customers import customer_segment_profile, label_customer_segments
+from ml_project.models.selection import load_selection_record
 
 
 LINE = "=" * 92
@@ -43,7 +44,9 @@ def print_artifacts() -> None:
         PATHS.model_dir / "fraud_pipeline.joblib",
         PATHS.model_dir / "customer_clustering.joblib",
         PATHS.report_dir / "fraud_metrics.json",
+        PATHS.report_dir / "fraud_model_selection.json",
         PATHS.report_dir / "customer_clustering_metrics.json",
+        PATHS.report_dir / "clustering_model_selection.json",
         PATHS.report_dir / "customer_k_scores.csv",
         PATHS.processed_dir / "customer_segments.csv",
     ]
@@ -57,7 +60,7 @@ def print_fraud_results() -> None:
     section("Detection de fraude - resultats modele")
     metrics = load_json(PATHS.report_dir / "fraud_metrics.json")
     if not metrics:
-        print("Aucune metrique disponible. Lancer: python scripts/train_fraud.py --model random_forest")
+        print("Aucune metrique disponible. Lancer: python scripts/compare_fraud_models.py")
         return
 
     for key in ["accuracy", "precision", "recall", "f1", "roc_auc"]:
@@ -115,7 +118,7 @@ def print_customer_results() -> None:
         for key, value in metrics.items():
             print(f"{key:<16}: {value:.6f}")
     else:
-        print("Aucune metrique disponible. Lancer: python scripts/train_customer_clustering.py --search-k")
+        print("Aucune metrique disponible. Lancer: python scripts/compare_clustering_models.py")
 
     k_path = PATHS.report_dir / "customer_k_scores.csv"
     if k_path.exists():
@@ -157,11 +160,26 @@ def print_demo_commands() -> None:
     print("Revoir resultats   : python scripts/show_results.py")
 
 
+def print_selected_models() -> None:
+    section("Modeles selectionnes automatiquement")
+    fraud_selection = load_selection_record(PATHS.report_dir / "fraud_model_selection.json")
+    cluster_selection = load_selection_record(PATHS.report_dir / "clustering_model_selection.json")
+    if fraud_selection:
+        print(f"Fraude      : {fraud_selection.get('selected_model')} ({fraud_selection.get('selection_criteria')})")
+    else:
+        print("Fraude      : non renseigne (lancer compare_fraud_models.py)")
+    if cluster_selection:
+        print(f"Clustering  : {cluster_selection.get('selected_model')} ({cluster_selection.get('selection_criteria')})")
+    else:
+        print("Clustering  : non renseigne (lancer compare_clustering_models.py)")
+
+
 def main() -> None:
     print(LINE)
     print("PROJET ML - RESTITUTION TERMINAL ENTREPRISE")
     print(LINE)
     print_artifacts()
+    print_selected_models()
     print_fraud_results()
     print_customer_results()
     print_demo_commands()

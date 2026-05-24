@@ -25,8 +25,8 @@ Projet de Machine Learning pour deux cas d'usage:
 
 ## Livrables
 
-- Rapport final: `RAPPORT_FINAL.md`
-- Rapport HTML: `reports/rapport_final.html`
+- Rapport final narratif: `RAPPORT_FINAL.md` (texte + graphiques)
+- Rapport HTML: `reports/rapport_final.html` (generer via `python scripts/generate_html_report.py`)
 - Dashboard Streamlit: `dashboard/app.py`
 - Presentation finale: `PRESENTATION_ENTREPRISE.md`
 - Depot GitHub deployable: architecture projet, dependances, modeles, donnees utiles, scripts et documentation
@@ -74,7 +74,19 @@ python scripts/profile_data.py
 
 ## Entrainement fraude
 
-Baseline Random Forest:
+Comparaison puis selection automatique du meilleur modele :
+
+```bash
+python scripts/compare_fraud_models.py --nrows 200000
+```
+
+Entrainement avec le meilleur modele identifie (`--model best` par defaut) :
+
+```bash
+python scripts/train_fraud.py
+```
+
+Entrainement manuel :
 
 ```bash
 python scripts/train_fraud.py --model random_forest --nrows 200000
@@ -91,6 +103,9 @@ Comparaison des modeles demandes dans le cahier des charges:
 ```bash
 python scripts/compare_fraud_models.py --nrows 200000
 ```
+
+Le script compare les modeles, selectionne automatiquement le meilleur et sauvegarde
+`models/fraud_pipeline.joblib` sur l'integralite des transactions.
 
 Le script compare:
 
@@ -111,6 +126,7 @@ Sorties:
 - `models/fraud_pipeline.joblib`
 - `reports/fraud_metrics.json`
 - `reports/fraud_model_comparison.csv`
+- `reports/fraud_model_selection.json`
 
 Interpretabilite, importance des variables et analyse FP/FN:
 
@@ -134,17 +150,26 @@ Recherche du nombre de clusters:
 python scripts/train_customer_clustering.py --search-k
 ```
 
-Entrainement K-Means:
+Comparaison puis selection automatique du meilleur algorithme :
+
+```bash
+python scripts/compare_clustering_models.py
+```
+
+Entrainement avec le meilleur algorithme identifie :
+
+```bash
+python scripts/train_customer_clustering.py
+```
+
+Entrainement manuel :
 
 ```bash
 python scripts/train_customer_clustering.py --model kmeans --clusters 4
 ```
 
-Comparaison des algorithmes demandes:
-
-```bash
-python scripts/compare_clustering_models.py
-```
+Le script compare les algorithmes, selectionne automatiquement le meilleur
+(silhouette, Davies-Bouldin, sans bruit DBSCAN) et sauvegarde les artefacts.
 
 Sorties:
 
@@ -152,6 +177,7 @@ Sorties:
 - `data/processed/customer_segments.csv`
 - `reports/customer_clustering_metrics.json`
 - `reports/clustering_model_comparison.csv`
+- `reports/clustering_model_selection.json`
 
 ## API
 
@@ -194,12 +220,12 @@ Sur Streamlit Community Cloud, utiliser:
 Main file path: dashboard/app.py
 ```
 
-Le dashboard contient:
+Le dashboard contient quatre sections calquees sur le rapport final:
 
-- `01 - Synthese dirigeant`;
-- `02 - Analyse du risque fraude`;
-- `03 - Scoring transaction et CSV`;
-- `04 - Segmentation clients`.
+- `1 · Introduction et contexte`;
+- `2 · Detection de fraude bancaire`;
+- `3 · Scoring operationnel`;
+- `4 · Segmentation client`.
 
 Le design utilise des composants React embarques dans Streamlit pour les headers, les KPI et les blocs de lecture business. Le bundle de production est deja versionne dans:
 

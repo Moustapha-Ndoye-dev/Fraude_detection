@@ -13,7 +13,8 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 from ml_project.config import PATHS
 from ml_project.data.loaders import read_customer_data
 from ml_project.models.clustering import fit_customer_clustering
-
+from ml_project.models.selection import select_best_clustering_model
+from ml_project.training.artifacts import persist_clustering_model
 
 MODEL_ORDER = ["kmeans", "dbscan", "agglomerative", "gaussian_mixture"]
 
@@ -21,6 +22,11 @@ MODEL_ORDER = ["kmeans", "dbscan", "agglomerative", "gaussian_mixture"]
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Comparer les algorithmes de clustering client.")
     parser.add_argument("--clusters", type=int, default=4)
+    parser.add_argument(
+        "--skip-deploy",
+        action="store_true",
+        help="Ne pas sauvegarder automatiquement le meilleur modele.",
+    )
     return parser.parse_args()
 
 
@@ -51,6 +57,16 @@ def main() -> None:
     output.to_csv(output_path, index=False)
     print(output.to_string(index=False))
     print(f"Comparaison sauvegardee: {output_path}")
+
+    if args.skip_deploy:
+        return
+
+    best_model = select_best_clustering_model(output)
+    result = fit_customer_clustering(df, model_name=best_model, n_clusters=args.clusters)
+    persist_clustering_model(result, df, comparison=output)
+
+    print(f"Meilleur algorithme selectionne: {best_model}")
+    print(f"Modele de production sauvegarde: {PATHS.model_dir / 'customer_clustering.joblib'}")
 
 
 if __name__ == "__main__":

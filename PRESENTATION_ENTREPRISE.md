@@ -10,7 +10,7 @@ Ce projet met en place une solution complete de valorisation des donnees pour un
 - service de scoring;
 - premiere architecture MLOps pour industrialiser le systeme.
 
-Les chiffres detailles et l'interpretation metier sont dans `RAPPORT_FINAL.md` et `reports/rapport_final.html`.
+Les chiffres detailles et l'interpretation metier sont dans `RAPPORT_FINAL.md` (rapport narratif avec graphiques) et `reports/rapport_final.html`.
 
 ## 2. Resultats principaux
 
@@ -40,13 +40,13 @@ python scripts/show_results.py
 python -m streamlit run dashboard/app.py
 ```
 
-3. Montrer la page `01 - Synthese dirigeant`.
+3. Montrer la section `1 · Introduction et contexte`.
 
-4. Montrer la page `02 - Analyse du risque fraude`.
+4. Montrer la section `2 · Detection de fraude bancaire`.
 
-5. Montrer la page `04 - Segmentation clients`.
+5. Montrer la section `4 · Segmentation client`.
 
-6. Aller dans `03 - Scoring transaction et CSV`.
+6. Aller dans `3 · Scoring operationnel`.
 
 7. Saisir une transaction manuellement et lire la decision, la probabilite et l'action recommandee.
 

@@ -48,13 +48,74 @@ def fmt_pct(value: float, digits: int = 2) -> str:
     return f"{value * 100:.{digits}f}%"
 
 
-def page_header(title: str, subtitle: str, insight: str) -> None:
-    react_hero(
-        title,
-        subtitle,
-        chips=["Decision risque", "Scoring CSV", "Segments clients"],
+def page_header(
+    title: str,
+    subtitle: str,
+    *,
+    eyebrow: str = "Fraud & Customer Intelligence",
+    chips: list[str] | None = None,
+) -> None:
+    react_hero(title, subtitle, eyebrow=eyebrow, chips=chips or [])
+
+
+REPORT_PAGES = {
+    "introduction": {
+        "menu": "1 · Introduction et contexte",
+        "eyebrow": "Rapport d'analyse · M2 CDSD",
+        "title": "Fraud & Customer Intelligence",
+        "subtitle": (
+            "Projet de machine learning couvrant la detection de fraude bancaire, "
+            "la segmentation client et une premiere architecture MLOps. Ce tableau de bord "
+            "restitue les resultats du rapport final: plus d'un million de transactions analysees, "
+            "modeles compares automatiquement, profils marketing actionnables et scoring operationnel."
+        ),
+        "chips": ["Detection de fraude", "Segmentation client", "Scoring CSV", "MLOps"],
+    },
+    "fraude": {
+        "menu": "2 · Detection de fraude bancaire",
+        "eyebrow": "Chapitre 3 · Analyse des transactions",
+        "title": "Detection de fraude bancaire",
+        "subtitle": (
+            "Analyse exploratoire des transactions, comparaison des modeles supervises "
+            "et lecture metier des signaux de risque. Les fraudes historiques se concentrent "
+            "sur les virements et retraits: ce chapitre aide a prioriser les controles "
+            "par type, periode et montant."
+        ),
+        "chips": ["EDA transactions", "Modele retenu", "Metriques F1 / Recall", "Priorisation risque"],
+    },
+    "scoring": {
+        "menu": "3 · Scoring operationnel",
+        "eyebrow": "Chapitre 5 · Mise en production",
+        "title": "Scoring en conditions reelles",
+        "subtitle": (
+            "Demonstration du service de scoring: saisie unitaire d'une transaction ou import "
+            "CSV en volume. Chaque ligne est validee, scoree et traduite en niveau de risque "
+            "et action recommandee pour les equipes conformite et operations."
+        ),
+        "chips": ["API FastAPI", "Validation schema", "Export CSV score", "Seuil configurable"],
+    },
+    "segmentation": {
+        "menu": "4 · Segmentation client",
+        "eyebrow": "Chapitre 4 · Marketing analytique",
+        "title": "Segmentation intelligente des clients",
+        "subtitle": (
+            "Clustering non supervise de la base client pour identifier des profils homogenes: "
+            "premium, dormants, sensibles aux promotions et economes. Chaque segment ouvre "
+            "des recommandations distinctes en fidelisation, reactivation et automatisation marketing."
+        ),
+        "chips": ["Clustering", "Profils metiers", "Silhouette", "Actions marketing"],
+    },
+}
+
+
+def report_header(page_key: str) -> None:
+    section = REPORT_PAGES[page_key]
+    page_header(
+        section["title"],
+        section["subtitle"],
+        eyebrow=section["eyebrow"],
+        chips=section["chips"],
     )
-    react_insight("Insight metier", insight, tone="success")
 
 
 def business_note(title: str, body: str) -> None:
@@ -323,16 +384,11 @@ def cluster_choice_business_insight(k_scores: pd.DataFrame, selected_k: int) -> 
 
 
 def render_sidebar() -> str:
-    st.sidebar.title("Fraud Intelligence")
-    st.sidebar.caption("Detection de fraude, scoring CSV et segmentation client")
+    st.sidebar.title("Rapport interactif")
+    st.sidebar.caption("Fraud & Customer Intelligence — restitution des analyses")
     page = st.sidebar.radio(
-        "Menu principal",
-        [
-            "01 - Synthese dirigeant",
-            "02 - Analyse du risque fraude",
-            "03 - Scoring transaction et CSV",
-            "04 - Segmentation clients",
-        ],
+        "Sections du rapport",
+        [section["menu"] for section in REPORT_PAGES.values()],
     )
     st.sidebar.divider()
     st.sidebar.caption("Disponibilite des livrables")
@@ -361,11 +417,7 @@ def render_executive_page(fraud_df: pd.DataFrame, segments: pd.DataFrame, fraud_
     total_transactions = len(fraud_df)
     total_frauds = int(fraud_df["isFraud"].sum())
     profile = label_customer_segments(customer_segment_profile(segments))
-    page_header(
-        "Synthese executive",
-        "Vue de pilotage pour dirigeants: performance modele, exposition fraude et valeur client.",
-        fraud_executive_insight(fraud_df, fraud_metrics),
-    )
+    report_header("introduction")
 
     react_kpis(
         [
@@ -401,7 +453,7 @@ def render_executive_page(fraud_df: pd.DataFrame, segments: pd.DataFrame, fraud_
         st.bar_chart(profile.set_index("segment")["clients"])
 
     business_note(
-        "Decision a prendre.",
+        "Lecture executive.",
         executive_business_insight(fraud_df, segments, fraud_metrics),
     )
 
@@ -413,11 +465,7 @@ def render_fraud_page(fraud_df: pd.DataFrame, fraud_metrics: dict) -> None:
     total_transactions = len(fraud_df)
     total_frauds = int(fraud_df["isFraud"].sum())
     fraud_only = fraud_df[fraud_df["isFraud"] == 1]
-    page_header(
-        "Risque fraude",
-        "Analyse operationnelle des transactions, metriques modele et signaux de fraude a prioriser.",
-        fraud_executive_insight(fraud_df, fraud_metrics),
-    )
+    report_header("fraude")
 
     react_kpis(
         [
@@ -522,11 +570,7 @@ def render_scored_results(scored: pd.DataFrame, threshold: float, delimiter: str
 
 
 def render_operational_scoring_page() -> None:
-    page_header(
-        "Scoring operationnel",
-        "Saisissez une transaction ou importez un fichier CSV pour obtenir le risque et l'action recommandee.",
-        "Le fichier est accepte seulement si son schema est conforme. La decision produite n'est pas seulement une prediction: elle transforme chaque ligne en action exploitable par les equipes risque.",
-    )
+    report_header("scoring")
     model = load_fraud_model()
     if model is None:
         st.error("Le service de scoring n'est pas pret: le modele fraude est introuvable.")
@@ -677,11 +721,7 @@ def render_customer_page(segments: pd.DataFrame, clustering_metrics: dict, k_sco
         missing_asset("Segments clients indisponibles: fichier data/processed/customer_segments.csv absent du deploiement.")
         return
     profile = label_customer_segments(customer_segment_profile(segments))
-    page_header(
-        "Segments clients",
-        "Profils marketing actionnables pour la fidelisation, la reactivation et les campagnes ciblees.",
-        customer_executive_insight(profile, segments),
-    )
+    report_header("segmentation")
     react_kpis(
         [
             {"label": "Clients", "value": fmt_int(len(segments)), "detail": "Base CRM analysee"},
@@ -736,25 +776,29 @@ def render_customer_page(segments: pd.DataFrame, clustering_metrics: dict, k_sco
         )
 
 
+PAGE_BY_MENU = {section["menu"]: key for key, section in REPORT_PAGES.items()}
+
+
 page = render_sidebar()
+page_key = PAGE_BY_MENU[page]
 fraud_metrics = load_json(str(PATHS.report_dir / "fraud_metrics.json"))
 clustering_metrics = load_json(str(PATHS.report_dir / "customer_clustering_metrics.json"))
 
-if page in {"01 - Synthese dirigeant", "02 - Analyse du risque fraude"}:
+if page_key in {"introduction", "fraude"}:
     fraud_data = load_fraud_data()
 else:
     fraud_data = pd.DataFrame()
 
-if page in {"01 - Synthese dirigeant", "04 - Segmentation clients"}:
+if page_key in {"introduction", "segmentation"}:
     customer_segments = load_customer_segments()
 else:
     customer_segments = pd.DataFrame()
 
-if page == "01 - Synthese dirigeant":
+if page_key == "introduction":
     render_executive_page(fraud_data, customer_segments, fraud_metrics)
-elif page == "02 - Analyse du risque fraude":
+elif page_key == "fraude":
     render_fraud_page(fraud_data, fraud_metrics)
-elif page == "03 - Scoring transaction et CSV":
+elif page_key == "scoring":
     render_operational_scoring_page()
-elif page == "04 - Segmentation clients":
+elif page_key == "segmentation":
     render_customer_page(customer_segments, clustering_metrics, load_k_scores())

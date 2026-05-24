@@ -13,7 +13,8 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 from ml_project.config import PATHS
 from ml_project.data.loaders import read_fraud_transactions
 from ml_project.models.fraud import train_fraud_model
-
+from ml_project.models.selection import select_best_fraud_model
+from ml_project.training.artifacts import persist_fraud_model
 
 MODEL_ORDER = ["logistic_regression", "random_forest", "xgboost", "lightgbm", "neural_network"]
 
@@ -22,19 +23,20 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Comparer plusieurs modeles de detection de fraude.")
     parser.add_argument("--nrows", type=int, default=200000, help="Nombre de lignes utilisees pour la comparaison.")
     parser.add_argument("--test-size", type=float, default=0.2)
+    parser.add_argument(
+        "--skip-deploy",
+        action="store_true",
+        help="Ne pas sauvegarder automatiquement le meilleur modele.",
+    )
     return parser.parse_args()
 
 
-def main() -> None:
-    args = parse_args()
-    PATHS.ensure_outputs()
-    df = read_fraud_transactions(nrows=args.nrows)
+def compare_models(df: pd.DataFrame, test_size: float) -> pd.DataFrame:
     rows = []
-
     for model_name in MODEL_ORDER:
         started = time.perf_counter()
         try:
-            result = train_fraud_model(df, model_name=model_name, test_size=args.test_size)
+            result = train_fraud_model(df, model_name=model_name, test_size=test_size)
             elapsed = time.perf_counter() - started
             rows.append(
                 {
@@ -61,12 +63,30 @@ def main() -> None:
                     "note": str(exc),
                 }
             )
+    return pd.DataFrame(rows)
 
-    output = pd.DataFrame(rows)
+
+def main() -> None:
+    args = parse_args()
+    PATHS.ensure_outputs()
+
+    compare_df = read_fraud_transactions(nrows=args.nrows)
+    output = compare_models(compare_df, test_size=args.test_size)
     output_path = PATHS.report_dir / "fraud_model_comparison.csv"
     output.to_csv(output_path, index=False)
     print(output.to_string(index=False))
     print(f"Comparaison sauvegardee: {output_path}")
+
+    if args.skip_deploy:
+        return
+
+    best_model = select_best_fraud_model(output)
+    train_df = read_fraud_transactions(nrows=None)
+    result = train_fraud_model(train_df, model_name=best_model, test_size=args.test_size)
+    persist_fraud_model(result, comparison=output)
+
+    print(f"Meilleur modele selectionne: {best_model}")
+    print(f"Modele de production sauvegarde: {PATHS.model_dir / 'fraud_pipeline.joblib'}")
 
 
 if __name__ == "__main__":

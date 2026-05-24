@@ -4,10 +4,15 @@ Ce dossier recoit les sorties d'analyse:
 
 - metriques JSON;
 - tableaux CSV;
-- graphiques;
-- exports pour la presentation finale;
+- graphiques dans `figures/`;
+- rapport final HTML narratif: `rapport_final.html`;
 - comparaisons de modeles fraude et clustering;
-- importance des variables, SHAP et analyse FP/FN;
-- rapport final HTML.
+- importance des variables, SHAP et analyse FP/FN.
 
-Les figures sont a placer dans `reports/figures/`.
+Generer le rapport complet (texte + graphiques):
+
+```bash
+python scripts/generate_html_report.py
+```
+
+Les figures sont produites automatiquement dans `reports/figures/`.

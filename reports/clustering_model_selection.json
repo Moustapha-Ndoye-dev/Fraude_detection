@@ -1,0 +1,45 @@
+{
+  "task": "clustering",
+  "selected_model": "gaussian_mixture",
+  "selection_criteria": "silhouette desc, davies_bouldin asc, sans bruit DBSCAN",
+  "selected_at": "2026-05-24T18:51:46.581947+00:00",
+  "ranking": [
+    {
+      "model": "gaussian_mixture",
+      "clusters_requested": 4.0,
+      "clusters_found": 4,
+      "noise_points": 0,
+      "elapsed_seconds": 0.97,
+      "silhouette": 0.23153382527390431,
+      "davies_bouldin": 2.154082360392726
+    },
+    {
+      "model": "kmeans",
+      "clusters_requested": 4.0,
+      "clusters_found": 4,
+      "noise_points": 0,
+      "elapsed_seconds": 3.61,
+      "silhouette": 0.17643362076822208,
+      "davies_bouldin": 2.089839599425044
+    },
+    {
+      "model": "agglomerative",
+      "clusters_requested": 4.0,
+      "clusters_found": 4,
+      "noise_points": 0,
+      "elapsed_seconds": 0.46,
+      "silhouette": 0.14466900870657615,
+      "davies_bouldin": 2.3438942354303087
+    }
+  ],
+  "selected_metrics": {
+    "model": "gaussian_mixture",
+    "clusters_requested": 4.0,
+    "clusters_found": 4,
+    "noise_points": 0,
+    "elapsed_seconds": 0.97,
+    "silhouette": 0.23153382527390431,
+    "davies_bouldin": 2.154082360392726
+  },
+  "artifact_path": "models\\customer_clustering.joblib"
+}

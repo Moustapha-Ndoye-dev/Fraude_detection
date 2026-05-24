@@ -12,7 +12,7 @@ Statut global: **conforme** — tous les points du cahier des charges sont couve
 | Visualisations fraude | Fait | `dashboard/app.py`, `reports/rapport_final.html` |
 | Pretraitement: encodage, normalisation, desequilibre | Fait | `src/ml_project/features/fraud.py`, `src/ml_project/models/fraud.py` |
 | Regression Logistique | Fait | `scripts/compare_fraud_models.py`, `reports/fraud_model_comparison.csv` |
-| Random Forest | Fait | `scripts/train_fraud.py`, `models/fraud_pipeline.joblib` |
+| Random Forest | Fait | `scripts/compare_fraud_models.py`, selection automatique du meilleur modele |
 | XGBoost | Fait | `scripts/compare_fraud_models.py`, dependance optionnelle `requirements-optional.txt` |
 | LightGBM | Fait | `scripts/compare_fraud_models.py`, dependance optionnelle `requirements-optional.txt` |
 | Reseau de neurones | Fait | `src/ml_project/models/fraud.py`, `reports/fraud_model_comparison.csv` |
@@ -27,7 +27,7 @@ Statut global: **conforme** — tous les points du cahier des charges sont couve
 | --- | --- | --- |
 | Analyse exploratoire clients, revenus, achats | Fait | `notebooks/03_eda_segmentation.ipynb` |
 | Pretraitement: encodage, normalisation, valeurs manquantes, PCA eventuelle | Fait | `src/ml_project/features/customers.py`, `src/ml_project/models/clustering.py` (PCA non retenue, normalisation suffisante) |
-| K-Means | Fait | `scripts/train_customer_clustering.py`, `models/customer_clustering.joblib` |
+| K-Means | Fait | `scripts/compare_clustering_models.py`, selection automatique du meilleur algorithme |
 | DBSCAN | Fait | `scripts/compare_clustering_models.py` |
 | Agglomerative Clustering | Fait | `scripts/compare_clustering_models.py` |
 | Gaussian Mixture Models | Fait | `scripts/compare_clustering_models.py` |

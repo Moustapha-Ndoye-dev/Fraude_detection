@@ -60,11 +60,24 @@ def customer_segment_profile(segments: pd.DataFrame) -> pd.DataFrame:
 
 def label_customer_segments(profile: pd.DataFrame) -> pd.DataFrame:
     labeled = profile.copy()
-    labeled["label_metier"] = "Clients economes"
-    labeled.loc[labeled["depense_moyenne"].idxmax(), "label_metier"] = "Clients premium"
-    labeled.loc[labeled["recence_moyenne"].idxmax(), "label_metier"] = "Clients dormants"
-    web_promo_score = labeled["achats_web_moyens"].rank() + labeled["achats_promo_moyens"].rank()
-    labeled.loc[web_promo_score.idxmax(), "label_metier"] = "Digitaux et promotions"
+    labeled["label_metier"] = ""
+    used_indexes: set[int | str] = set()
+
+    def assign_label(label: str, index: int | str) -> None:
+        labeled.loc[index, "label_metier"] = label
+        used_indexes.add(index)
+
+    premium_idx = labeled["depense_moyenne"].idxmax()
+    assign_label("Clients premium", premium_idx)
+
+    dormant_candidates = labeled.loc[~labeled.index.isin(used_indexes)]
+    assign_label("Clients dormants", dormant_candidates["recence_moyenne"].idxmax())
+
+    digital_candidates = labeled.loc[~labeled.index.isin(used_indexes)]
+    web_promo_score = digital_candidates["achats_web_moyens"].rank() + digital_candidates["achats_promo_moyens"].rank()
+    assign_label("Digitaux et promotions", web_promo_score.idxmax())
+
+    labeled.loc[labeled["label_metier"] == "", "label_metier"] = "Clients economes"
     return labeled
 
 
