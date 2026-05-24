@@ -10,17 +10,17 @@ Projet de Machine Learning pour deux cas d'usage:
 
 ```text
 .
-├── api/                    # API FastAPI pour servir les predictions fraude
-├── config/                 # Parametres projet
-├── dashboard/              # Application Streamlit
-├── data/                   # Donnees brutes/traitees (hors Git)
-├── mlops/                  # Architecture, model cards, monitoring
-├── models/                 # Artefacts modeles sauvegardes
-├── notebooks/              # Notebooks d'analyse et d'experimentation
-├── reports/                # Metriques, figures et exports
-├── scripts/                # Commandes reproductibles
-├── src/ml_project/         # Package Python principal
-└── tests/                  # Tests unitaires
+|-- api/                    # API FastAPI pour servir les predictions fraude
+|-- config/                 # Parametres projet
+|-- dashboard/              # Application Streamlit
+|-- data/                   # Donnees traitees utiles au dashboard
+|-- mlops/                  # Architecture, model cards, monitoring
+|-- models/                 # Artefacts modeles sauvegardes
+|-- notebooks/              # Notebooks d'analyse et d'experimentation
+|-- reports/                # Metriques, figures et exports
+|-- scripts/                # Commandes reproductibles
+|-- src/ml_project/         # Package Python principal
+`-- tests/                  # Tests unitaires
 ```
 
 Les fichiers fournis restent lisibles a la racine:
@@ -28,6 +28,13 @@ Les fichiers fournis restent lisibles a la racine:
 - `detection_fraude.csv`
 - `data_cluster.csv`
 - `projet_machine_learning_m2CDSD.docx`
+
+Les artefacts necessaires au deploiement Streamlit Cloud sont versionnes:
+
+- `models/fraud_pipeline.joblib`
+- `models/customer_clustering.joblib`
+- `data/processed/customer_segments.csv`
+- `reports/customer_k_scores.csv`
 
 ## Installation
 
@@ -139,6 +146,15 @@ Le dashboard contient:
 - un outil de scoring operationnel avec saisie transaction et import CSV;
 - une vue segmentation client;
 - une page MLOps et exploitation.
+
+## Deploiement Streamlit Cloud
+
+1. Connecter le depot GitHub `Moustapha-Ndoye-dev/Fraude_detection`.
+2. Choisir la branche `main`.
+3. Mettre `dashboard/app.py` dans `Main file path`.
+4. Attendre le redeploiement apres chaque `git push`.
+
+Si l'ancienne interface apparait encore, ouvrir `Manage app`, puis lancer `Reboot app` ou `Clear cache`.
 
 ## Strategie d'analyse
 
